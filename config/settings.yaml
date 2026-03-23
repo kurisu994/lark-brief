@@ -1,11 +1,17 @@
 llm:
   base_url: https://ark.cn-beijing.volces.com/api/v3
-  model: "模型ID"           # 火山引擎模型 ID，在控制台获取
+  model: "doubao-seed-2-0-lite-260215"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 4096
+  timeout: 600
+  query_timeout: 120 # 单次查询/对话的总超时（秒），包含 Embedding + 检索 + LLM 全流程
+  reasoning_effort: "medium"
   # api_key 通过环境变量 ARK_API_KEY 读取
 
 crawler:
   headless: true
-  filter_threshold: 0.45     # PruningContentFilter 阈值
+  filter_threshold: 0.45  # PruningContentFilter 阈值
 
 output:
   dir: output
@@ -14,3 +20,10 @@ output:
 brief:
   max_items: 15
   min_items: 10
+
+pushers:
+  dingtalk:
+    enabled: true
+    webhook_url: https://oapi.dingtalk.com/robot/send
+    # access_token 通过环境变量 D_ACCESS_TOKEN 读取
+    # secret 通过环境变量 D_SECRET 读取

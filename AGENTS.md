@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-每日资讯简报自动生成工具，三阶段管线：**爬取 → LLM 总结 → 格式化简报 MD**。
+每日资讯简报自动生成工具，四阶段管线：**爬取 → LLM 总结 → 格式化简报 MD → 推送（钉钉）**。
 
 ## 架构
 
@@ -11,12 +11,13 @@ src/main.py          # 入口，串联完整异步流程 (asyncio)
 src/crawler.py       # 爬取模块 — crawl4ai 并发爬取 + PruningContentFilter 去噪
 src/summarizer.py    # 总结模块 — 火山引擎 LLM 提取摘要 + 跨源去重排序
 src/composer.py      # 组装模块 — 格式化简报 MD（含 borax 农历日期）
-config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、条目数量
+src/pusher.py        # 推送模块 — 钉钉机器人 Webhook（HMAC-SHA256 加签）
+config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、推送渠道
 config/sources.yaml  # 资讯源列表：name/url/category/enabled
 output/              # 生成的简报归档，格式 YYYY-MM-DD.md
 ```
 
-**数据流**: `sources.yaml → crawler(CrawlResult) → summarizer(NewsItem) → composer(str) → output/*.md`
+**数据流**: `sources.yaml → crawler(CrawlResult) → summarizer(NewsItem) → composer(str) → output/*.md + pusher(钉钉)`
 
 ## 关键约定
 
@@ -47,7 +48,8 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 | `openai` | 调用火山引擎 LLM（兼容 OpenAI 协议） |
 | `borax` | `borax.calendars` 生成中国农历日期 |
 | `pyyaml` | 读取 YAML 配置 |
-| `httpx` | 异步 HTTP 客户端（预留飞书推送） |
+| `httpx` | 异步 HTTP 客户端（钉钉 Webhook 推送） |
+| `python-dotenv` | 加载 `.env` 环境变量 |
 
 ## 添加新资讯源
 
@@ -61,8 +63,8 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 
 ## 注意事项
 
-- 项目当前处于 **MVP 骨架阶段**，核心函数均为 `TODO + raise NotImplementedError`
 - 详细需求和 LLM Prompt 设计见 `docs/implementation-plan.md`
 - 根目录 `main.py` 是占位文件，实际入口为 `src/main.py`
+- 钉钉推送需配置环境变量：`D_ACCESS_TOKEN`、`D_SECRET`（见 `.env`）
 - 无测试框架，当前不编写测试
 - 代码注释使用中文，变量/函数名使用英文

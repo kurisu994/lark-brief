@@ -5,6 +5,7 @@ build/
 dist/
 .env
 .env.*
+!.env.example
 /docs
 wheels/
 /output
