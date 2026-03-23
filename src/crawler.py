@@ -58,19 +58,23 @@ async def crawl_sources(
         )
 
         for source, raw in zip(enabled, raw_results):
-            if raw.success and raw.markdown_v2:
-                # 优先使用过滤后的 fit_markdown，否则回退到原始 markdown
-                content = raw.markdown_v2.fit_markdown or raw.markdown_v2.raw_markdown or ""
-                results.append(CrawlResult(
-                    source_name=source["name"],
-                    category=source.get("category", ""),
-                    url=source["url"],
-                    markdown=content,
-                    success=True,
-                ))
-                logger.info("✅ 爬取成功: %s (%d 字符)", source["name"], len(content))
-            else:
-                error_msg = raw.error_message if hasattr(raw, "error_message") else "未知错误"
+            try:
+                if raw.success and raw.markdown:
+                    # markdown 返回 MarkdownGenerationResult，含 fit_markdown / raw_markdown
+                    md_result = raw.markdown
+                    content = md_result.fit_markdown or md_result.raw_markdown or ""
+                    if content:
+                        results.append(CrawlResult(
+                            source_name=source["name"],
+                            category=source.get("category", ""),
+                            url=source["url"],
+                            markdown=content,
+                            success=True,
+                        ))
+                        logger.info("✅ 爬取成功: %s (%d 字符)", source["name"], len(content))
+                        continue
+                # 爬取失败或内容为空
+                error_msg = getattr(raw, "error_message", None) or "内容为空"
                 results.append(CrawlResult(
                     source_name=source["name"],
                     category=source.get("category", ""),
@@ -80,6 +84,16 @@ async def crawl_sources(
                     error=error_msg,
                 ))
                 logger.warning("❌ 爬取失败: %s — %s", source["name"], error_msg)
+            except Exception as e:
+                results.append(CrawlResult(
+                    source_name=source["name"],
+                    category=source.get("category", ""),
+                    url=source["url"],
+                    markdown="",
+                    success=False,
+                    error=str(e),
+                ))
+                logger.warning("❌ 爬取异常: %s — %s", source["name"], e)
 
     success_count = sum(1 for r in results if r.success)
     logger.info("爬取完成: %d/%d 成功", success_count, len(results))
