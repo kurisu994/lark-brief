@@ -1,0 +1,15 @@
+[project]
+name = "lark-brief"
+version = "0.1.0"
+description = "每日资讯简报自动生成工具：爬取 → LLM 总结 → 格式化简报"
+requires-python = ">=3.10"
+dependencies = [
+    "crawl4ai>=0.8.0",
+    "openai>=1.0.0",
+    "borax>=4.0.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+lark-brief = "src.main:main"

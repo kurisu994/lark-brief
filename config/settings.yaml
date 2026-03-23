@@ -1,0 +1,16 @@
+llm:
+  base_url: https://ark.cn-beijing.volces.com/api/v3
+  model: "模型ID"           # 火山引擎模型 ID，在控制台获取
+  # api_key 通过环境变量 ARK_API_KEY 读取
+
+crawler:
+  headless: true
+  filter_threshold: 0.45     # PruningContentFilter 阈值
+
+output:
+  dir: output
+  filename_format: "{date}.md"
+
+brief:
+  max_items: 15
+  min_items: 10

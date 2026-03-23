@@ -1,0 +1,30 @@
+sources:
+  - name: InfoQ 中文
+    url: https://www.infoq.cn/news
+    category: 开发技术
+    enabled: true
+
+  - name: Hacker News
+    url: https://news.ycombinator.com
+    category: 全球开发者
+    enabled: true
+
+  - name: Hugging Face Blog
+    url: https://huggingface.co/blog
+    category: AI/开源
+    enabled: true
+
+  - name: GitHub Blog Engineering
+    url: https://github.blog/engineering/
+    category: 工程工具链
+    enabled: true
+
+  - name: 36氪快讯
+    url: https://36kr.com/newsflashes
+    category: 商业科技
+    enabled: true
+
+  - name: Reuters Technology
+    url: https://www.reuters.com/technology/
+    category: 海外科技
+    enabled: true
