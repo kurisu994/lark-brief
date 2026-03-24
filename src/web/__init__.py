@@ -43,6 +43,7 @@ def create_app(settings: dict[str, Any]) -> FastAPI:
     app.state.store = store
     app.state.templates = templates
     app.state.output_dir = output_dir
+    app.state.settings = settings
 
     # 注册路由
     register_routes(app)

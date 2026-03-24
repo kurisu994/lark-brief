@@ -15,10 +15,10 @@ src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-
 src/store.py         # 持久化模块 — SQLite 运行日志 + Web UI 只读查询
 src/web/             # Web UI 模块 — FastAPI + Jinja2 + Tailwind（欧美极简风格）
   __init__.py        # create_app() 工厂函数
-  routes.py          # 页面路由（SSR）+ 数据 API（JSON）
+  routes.py          # 页面路由（SSR）+ 数据 API（JSON）+ 生成/搜索 API
   deps.py            # 依赖注入（Store、Templates、OutputDir）
   static/style.css   # 自定义 CSS（Markdown 渲染、Dark Mode）
-  templates/         # Jinja2 模板（base/index/brief/404/500）
+  templates/         # Jinja2 模板（base/index/brief/stats/search/404/500）
 config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、推送渠道
 config/sources.yaml  # 资讯源列表：name/url/category/enabled
 output/              # 生成的简报归档，格式 YYYY-MM-DD.md

@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="/static/style.css">
 
   <style type="text/tailwindcss">
+    @custom-variant dark (&:where(.dark, .dark *));
     @theme {
       --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
       --color-accent: #3b82f6;
@@ -35,6 +36,9 @@
         </a>
         <a href="/stats" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
           Stats
+        </a>
+        <a href="/search" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+          <i data-lucide="search" class="w-4 h-4"></i>
         </a>
         <button id="theme-toggle" type="button"
                 class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -75,6 +79,22 @@
     toggle.addEventListener('click', () => {
       html.classList.toggle('dark');
       localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // 全局键盘快捷键：/ 聚焦搜索
+    document.addEventListener('keydown', (e) => {
+      // 忽略输入框内的按键
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+          searchInput.focus();
+        } else {
+          window.location.href = '/search';
+        }
+      }
     });
   </script>
 

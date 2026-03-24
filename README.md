@@ -9,7 +9,7 @@
 - 📅 **农历日期** — 自动生成公历 + 农历日期（基于 borax）
 - 🔀 **跨源去重** — LLM 语义去重、按重要性排序，精选 10-20 条
 - 📤 **多渠道推送** — 钉钉 & 飞书自定义机器人 Webhook 推送（HMAC-SHA256 加签）
-- 🌐 **Web UI** — 轻量级 Web 界面，浏览历史简报和运行统计（FastAPI + Tailwind，欧美极简风格，支持 Dark Mode）
+- 🌐 **Web UI** — 轻量级 Web 界面，浏览历史简报和运行统计（FastAPI + Tailwind，欧美极简风格，支持 Dark Mode、全文搜索、手动触发生成、键盘快捷键）
 - ⚙️ **配置驱动** — YAML 配置资讯源和参数，代码零硬编码
 
 ## 📋 简报示例
@@ -129,7 +129,8 @@ lark-brief/
 - [x] cron 定时调度
 - [x] Docker 部署
 - [x] Web UI — 简报列表 + 详情页 + Dark Mode（Phase 1）
-- [ ] Web UI — 统计面板 + 源健康度（Phase 2）
+- [x] Web UI — 统计面板 + 源健康度（Phase 2）
+- [x] Web UI — 手动生成 + 全文搜索 + 键盘快捷键（Phase 3）
 
 ## 📄 许可证
 

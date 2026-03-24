@@ -1,6 +1,8 @@
 """路由注册：页面路由（SSR）+ 数据 API（JSON）"""
 
+import asyncio
 import math
+import re
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
@@ -10,6 +12,10 @@ from fastapi.templating import Jinja2Templates
 from src.store import Store
 
 from .deps import get_output_dir, get_store, get_templates
+
+# 简报生成任务锁，防止重复触发
+_generate_lock = asyncio.Lock()
+_generate_task: asyncio.Task[None] | None = None
 
 
 def register_routes(app: FastAPI) -> None:
@@ -211,6 +217,109 @@ def register_routes(app: FastAPI) -> None:
                 src["source_name"], days=days
             )
         return JSONResponse({"days": days, "data": health})
+
+    # ========== 手动触发生成（Phase 3） ==========
+
+    @app.post("/api/generate")
+    async def api_trigger_generate(request: Request) -> JSONResponse:
+        """手动触发简报生成（后台异步执行）"""
+        global _generate_task
+
+        async with _generate_lock:
+            # 检查是否有正在执行的生成任务
+            if _generate_task and not _generate_task.done():
+                return JSONResponse(
+                    {"status": "running", "message": "Briefing generation is already in progress."},
+                    status_code=409,
+                )
+
+            from src.main import generate_daily_brief
+
+            _generate_task = asyncio.create_task(generate_daily_brief())
+
+        return JSONResponse(
+            {"status": "started", "message": "Briefing generation started."},
+            status_code=202,
+        )
+
+    @app.get("/api/generate/status")
+    async def api_generate_status() -> JSONResponse:
+        """查询生成任务状态"""
+        if _generate_task is None:
+            return JSONResponse({"status": "idle", "message": "No generation task has been triggered."})
+        if not _generate_task.done():
+            return JSONResponse({"status": "running", "message": "Generation in progress."})
+        if _generate_task.cancelled():
+            return JSONResponse({"status": "cancelled", "message": "Generation was cancelled."})
+        exc = _generate_task.exception()
+        if exc:
+            return JSONResponse(
+                {"status": "failed", "message": f"Generation failed: {exc!s}"},
+                status_code=500,
+            )
+        return JSONResponse({"status": "completed", "message": "Generation completed successfully."})
+
+    # ========== 全文搜索（Phase 3） ==========
+
+    def _search_briefs(output_dir: Path, query: str, limit: int = 50) -> list[dict]:
+        """在 output/*.md 文件中搜索关键词，返回匹配结果"""
+        results: list[dict] = []
+        if not query.strip():
+            return results
+
+        pattern = re.compile(re.escape(query), re.IGNORECASE)
+        md_files = sorted(output_dir.glob("*.md"), reverse=True)
+
+        for md_file in md_files[:200]:  # 最多扫描 200 个文件
+            content = md_file.read_text(encoding="utf-8")
+            matches = list(pattern.finditer(content))
+            if not matches:
+                continue
+
+            # 提取第一个匹配的上下文片段
+            first = matches[0]
+            start = max(0, first.start() - 60)
+            end = min(len(content), first.end() + 60)
+            snippet = content[start:end].replace("\n", " ").strip()
+            if start > 0:
+                snippet = "…" + snippet
+            if end < len(content):
+                snippet = snippet + "…"
+
+            results.append({
+                "date": md_file.stem,
+                "match_count": len(matches),
+                "snippet": snippet,
+            })
+
+            if len(results) >= limit:
+                break
+
+        return results
+
+    @app.get("/api/search")
+    async def api_search(
+        q: str = "",
+        output_dir: Path = Depends(get_output_dir),
+    ) -> JSONResponse:
+        """全文搜索 API"""
+        results = _search_briefs(output_dir, q)
+        return JSONResponse({"query": q, "total": len(results), "results": results})
+
+    @app.get("/search", response_class=HTMLResponse)
+    async def search_page(
+        request: Request,
+        q: str = "",
+        templates: Jinja2Templates = Depends(get_templates),
+        output_dir: Path = Depends(get_output_dir),
+    ) -> HTMLResponse:
+        """搜索结果页"""
+        results = _search_briefs(output_dir, q) if q else []
+        return templates.TemplateResponse(
+            request,
+            "search.html",
+            {"query": q, "results": results},
+        )
 
     # ========== 错误处理 ==========
 
