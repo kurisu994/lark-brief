@@ -5,7 +5,7 @@ llm:
   top_p: 0.95
   max_tokens: 4096
   timeout: 600
-  query_timeout: 120 # 单次查询/对话的总超时（秒），包含 Embedding + 检索 + LLM 全流程
+  query_timeout: 600 # 单次查询/对话的总超时（秒）
   reasoning_effort: "medium"
   # api_key 通过环境变量 ARK_API_KEY 读取
 
@@ -18,7 +18,7 @@ output:
   filename_format: "{date}.md"
 
 brief:
-  max_items: 15
+  max_items: 20
   min_items: 10
 
 pushers:

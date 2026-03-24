@@ -58,7 +58,25 @@ async def crawl_sources(
             config=crawler_config,
         )
 
-        for source, raw in zip(enabled, raw_results, strict=False):
+        # 建立 URL → 爬取结果 的映射（arun_many 返回顺序可能与输入不一致）
+        result_map = {r.url: r for r in raw_results}
+
+        for source in enabled:
+            url = source["url"]
+            raw = result_map.get(url)
+            if raw is None:
+                results.append(
+                    CrawlResult(
+                        source_name=source["name"],
+                        category=source.get("category", ""),
+                        url=url,
+                        markdown="",
+                        success=False,
+                        error="未收到爬取结果",
+                    )
+                )
+                logger.warning("❌ 爬取失败: %s — 未收到爬取结果", source["name"])
+                continue
             try:
                 if raw.success and raw.markdown:
                     # markdown 返回 MarkdownGenerationResult，含 fit_markdown / raw_markdown
