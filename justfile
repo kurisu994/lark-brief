@@ -17,6 +17,10 @@ dev:
 schedule:
     uv run python -m src.main --schedule
 
+# 启动 Web UI（默认端口 8080）
+web port="8080":
+    uv run lark-brief --web --port {{ port }}
+
 # Lint 检查
 lint:
     uv run ruff check src/

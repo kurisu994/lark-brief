@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Lark Brief{% endblock %}</title>
+
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- 自定义样式 -->
+  <link rel="stylesheet" href="/static/style.css">
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      --color-accent: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans antialiased">
+
+  <!-- 导航栏 -->
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
+    <nav class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="/" class="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100 hover:text-accent transition-colors">
+        Lark Brief
+      </a>
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+          Dashboard
+        </a>
+        <button id="theme-toggle" type="button"
+                class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Toggle dark mode">
+          <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+          <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
+    <div class="max-w-6xl mx-auto px-6 py-4 text-xs text-slate-400 dark:text-slate-500">
+      Lark Brief · Daily News Briefing Tool
+    </div>
+  </footer>
+
+  <script>
+    // 初始化 Lucide 图标
+    lucide.createIcons();
+
+    // Dark Mode 切换
+    const toggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    // 读取用户偏好
+    if (localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      html.classList.add('dark');
+    }
+
+    toggle.addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

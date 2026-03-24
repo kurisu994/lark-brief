@@ -13,5 +13,21 @@ services:
     # docker compose run --rm lark-brief --once
     # command: ["--once"]
 
+  web:
+    build: .
+    container_name: lark-brief-web
+    command: ["--web"]
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./config:/app/config:ro
+      - ./output:/app/output:ro
+      - lark-brief-data:/app/data:ro
+    restart: unless-stopped
+    depends_on:
+      - lark-brief
+
 volumes:
   lark-brief-data:

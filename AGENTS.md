@@ -7,14 +7,22 @@
 ## 架构
 
 ```
-src/main.py          # 入口，串联完整异步流程 (asyncio)
+src/main.py          # 入口，串联完整异步流程 (asyncio)，支持 --web / --schedule / 默认单次
 src/crawler.py       # 爬取模块 — crawl4ai 三阶段爬取（批量→特殊源→重试）+ PruningContentFilter 去噪
 src/summarizer.py    # 总结模块 — 火山引擎 LLM 并行提取摘要 + 跨源去重排序
 src/composer.py      # 组装模块 — 格式化简报 MD（含 borax 农历日期）
 src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-SHA256 加签）
+src/store.py         # 持久化模块 — SQLite 运行日志 + Web UI 只读查询
+src/web/             # Web UI 模块 — FastAPI + Jinja2 + Tailwind（欧美极简风格）
+  __init__.py        # create_app() 工厂函数
+  routes.py          # 页面路由（SSR）+ 数据 API（JSON）
+  deps.py            # 依赖注入（Store、Templates、OutputDir）
+  static/style.css   # 自定义 CSS（Markdown 渲染、Dark Mode）
+  templates/         # Jinja2 模板（base/index/brief/404/500）
 config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、推送渠道
 config/sources.yaml  # 资讯源列表：name/url/category/enabled
 output/              # 生成的简报归档，格式 YYYY-MM-DD.md
+data/                # SQLite 数据库（lark-brief.db）
 ```
 
 **数据流**: `sources.yaml → crawler(CrawlResult) → summarizer(NewsItem) → composer(str) → output/*.md + pusher(钉钉/飞书)`
@@ -33,6 +41,7 @@ output/              # 生成的简报归档，格式 YYYY-MM-DD.md
 # 依赖管理使用 uv（非 pip），锁文件为 uv.lock
 uv sync                    # 安装依赖
 uv run python -m src.main  # 运行（或 uv run lark-brief）
+uv run lark-brief --web    # 启动 Web UI（端口 8080）
 
 # 必需环境变量
 export ARK_API_KEY="your-volcano-engine-api-key"
@@ -50,6 +59,9 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 | `pyyaml` | 读取 YAML 配置 |
 | `httpx` | 异步 HTTP 客户端（钉钉/飞书 Webhook 推送） |
 | `python-dotenv` | 加载 `.env` 环境变量 |
+| `fastapi` | Web UI 后端框架（async 原生，SSR + JSON API） |
+| `uvicorn` | ASGI 服务器（运行 FastAPI 应用） |
+| `jinja2` | 模板引擎（服务端渲染 HTML 页面） |
 
 ## 添加新资讯源
 
@@ -64,6 +76,7 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 ## 注意事项
 
 - 详细需求和 LLM Prompt 设计见 `docs/implementation-plan.md`
+- Web UI 设计方案见 `docs/web-ui-design.md`
 - 根目录 `main.py` 是占位文件，实际入口为 `src/main.py`
 - 钉钉推送需配置环境变量：`D_ACCESS_TOKEN`、`D_SECRET`（见 `.env`）
 - 飞书推送需配置环境变量：`FS_ACCESS_TOKEN`、`FS_SECRET`（见 `.env`）

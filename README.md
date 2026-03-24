@@ -9,6 +9,7 @@
 - 📅 **农历日期** — 自动生成公历 + 农历日期（基于 borax）
 - 🔀 **跨源去重** — LLM 语义去重、按重要性排序，精选 10-20 条
 - 📤 **多渠道推送** — 钉钉 & 飞书自定义机器人 Webhook 推送（HMAC-SHA256 加签）
+- 🌐 **Web UI** — 轻量级 Web 界面，浏览历史简报和运行统计（FastAPI + Tailwind，欧美极简风格，支持 Dark Mode）
 - ⚙️ **配置驱动** — YAML 配置资讯源和参数，代码零硬编码
 
 ## 📋 简报示例
@@ -65,10 +66,19 @@ FS_ACCESS_TOKEN=xxxxxx
 ### 运行
 
 ```bash
+# 单次生成简报
 uv run python -m src.main
+
+# 定时调度模式
+uv run python -m src.main --schedule
+
+# 启动 Web UI
+uv run lark-brief --web              # 默认端口 8080
+uv run lark-brief --web --port 3000  # 自定义端口
 ```
 
 生成的简报保存在 `output/YYYY-MM-DD.md`，同时推送到钉钉/飞书群。
+Web UI 访问 `http://localhost:8080` 浏览历史简报。
 
 ## 🏗️ 项目结构
 
@@ -82,8 +92,16 @@ lark-brief/
 │   ├── summarizer.py        # 总结模块：LLM 摘要提取 + 去重排序
 │   ├── composer.py          # 组装模块：简报格式化（含农历日期）
 │   ├── pusher.py            # 推送模块：钉钉 & 飞书机器人 Webhook
-│   └── main.py              # 入口：串联完整流程
+│   ├── store.py             # 持久化模块：SQLite 运行日志
+│   ├── main.py              # 入口：串联完整流程 + CLI
+│   └── web/                  # Web UI 模块
+│       ├── __init__.py       # FastAPI app 工厂
+│       ├── routes.py         # 页面路由 + API 路由
+│       ├── deps.py           # 依赖注入
+│       ├── static/           # 自定义样式
+│       └── templates/        # Jinja2 模板（欧美极简风格）
 ├── output/                   # 简报输出目录
+├── data/                     # SQLite 数据库
 └── docs/                     # 设计文档
 ```
 
@@ -108,8 +126,10 @@ lark-brief/
 - [x] 飞书机器人推送
 - [x] LLM 提取并行化（asyncio.gather）
 - [x] 爬取稳定性优化（重试 + 超时配置）
-- [ ] cron 定时调度
-- [ ] Docker 部署
+- [x] cron 定时调度
+- [x] Docker 部署
+- [x] Web UI — 简报列表 + 详情页 + Dark Mode（Phase 1）
+- [ ] Web UI — 统计面板 + 源健康度（Phase 2）
 
 ## 📄 许可证
 

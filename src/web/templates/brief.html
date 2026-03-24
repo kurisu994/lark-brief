@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ date }} — Lark Brief{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- 面包屑 -->
+  <div>
+    <a href="/" class="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+      <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+      Briefings
+    </a>
+  </div>
+
+  <!-- 页面标题 -->
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ date }}</h1>
+    {% if run %}
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      {% if run.status == 'success' %}
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Completed successfully
+        </span>
+      {% elif run.status == 'running' %}
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+          Running
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+          Failed
+        </span>
+      {% endif %}
+      {% if run.finished_at %}
+        · Generated at {{ run.finished_at[:16] | replace("T", " ") }}
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- 内容区：左栏 MD + 右栏信息卡片 -->
+  <div class="flex flex-col lg:flex-row gap-6">
+
+    <!-- 左栏：简报内容 -->
+    <div class="flex-1 min-w-0">
+      {% if brief_md %}
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-6">
+        <div id="brief-content" class="brief-content text-slate-700 dark:text-slate-300">
+          <!-- marked.js 将在这里渲染 -->
+        </div>
+      </div>
+      {% else %}
+      <div class="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-12 text-center">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
+          <i data-lucide="file-x" class="w-6 h-6 text-slate-400"></i>
+        </div>
+        <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">Briefing content not available</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">The markdown file for this date was not found.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 右栏：运行信息卡片 -->
+    {% if run %}
+    <div class="w-full lg:w-72 shrink-0 space-y-4">
+
+      <!-- Run Summary 卡片 -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Run Summary</h2>
+        <dl class="space-y-2.5 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-slate-500 dark:text-slate-400">Status</dt>
+            <dd>
+              {% if run.status == 'success' %}
+                <span class="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Success
+                </span>
+              {% elif run.status == 'running' %}
+                <span class="inline-flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Running
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1.5 text-red-700 dark:text-red-400 font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Failed
+                </span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500 dark:text-slate-400">Sources</dt>
+            <dd class="font-medium">{{ run.success_count }} / {{ run.total_sources }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500 dark:text-slate-400">Items</dt>
+            <dd class="font-medium">{{ run.news_count }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500 dark:text-slate-400">Duration</dt>
+            <dd class="font-medium">
+              {% if run.duration_sec %}
+                {{ (run.duration_sec // 60) | int }}m {{ (run.duration_sec % 60) | round(0) | int }}s
+              {% else %}
+                —
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Source Details 卡片 -->
+      {% if sources %}
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Source Details</h2>
+        <ul class="space-y-1.5 text-sm max-h-80 overflow-y-auto">
+          {% for src in sources %}
+          <li class="flex items-start gap-2">
+            {% if src.success %}
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+              <span class="text-slate-700 dark:text-slate-300">{{ src.source_name }}</span>
+            {% else %}
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0"></span>
+              <span>
+                <span class="text-slate-700 dark:text-slate-300">{{ src.source_name }}</span>
+                {% if src.error_msg %}
+                <span class="block text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[14rem]" title="{{ src.error_msg }}">
+                  {{ src.error_msg }}
+                </span>
+                {% endif %}
+              </span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- marked.js -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  lucide.createIcons();
+
+  // 渲染 Markdown 内容
+  const raw = {{ brief_md | tojson }};
+  if (raw) {
+    const el = document.getElementById('brief-content');
+    if (el) {
+      el.innerHTML = marked.parse(raw);
+    }
+  }
+</script>
+{% endblock %}

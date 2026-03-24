@@ -1,0 +1,47 @@
+/* Lark Brief — 自定义样式 */
+
+/* Markdown 渲染区域 */
+.brief-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.brief-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.brief-content p {
+  margin-bottom: 0.75rem;
+  line-height: 1.75;
+}
+
+.brief-content ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+
+.brief-content ol li {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
+
+.brief-content a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.brief-content a:hover {
+  text-decoration: underline;
+}
+
+.brief-content strong {
+  font-weight: 600;
+}
+
+/* Dark mode 下的 Markdown 渲染 */
+.dark .brief-content a {
+  color: #60a5fa;
+}

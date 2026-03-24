@@ -193,6 +193,52 @@ class Store:
             new_size / 1024 / 1024,
         )
 
+    # ========== Web UI 只读查询方法 ==========
+
+    def list_runs(self, limit: int = 20, offset: int = 0) -> list[dict]:
+        """分页查询运行记录，按日期倒序"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT id, run_date, started_at, finished_at,
+                      total_sources, success_count, fail_count,
+                      news_count, duration_sec, status
+               FROM run_logs ORDER BY run_date DESC, id DESC
+               LIMIT ? OFFSET ?""",
+            (limit, offset),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def count_runs(self) -> int:
+        """查询运行记录总数（分页用）"""
+        conn = self._get_conn()
+        row = conn.execute("SELECT COUNT(*) FROM run_logs").fetchone()
+        return row[0] if row else 0
+
+    def get_run_by_date(self, run_date: str) -> dict | None:
+        """按日期查询最近一次运行记录"""
+        conn = self._get_conn()
+        row = conn.execute(
+            """SELECT id, run_date, started_at, finished_at,
+                      total_sources, success_count, fail_count,
+                      news_count, duration_sec, status
+               FROM run_logs WHERE run_date = ?
+               ORDER BY id DESC LIMIT 1""",
+            (run_date,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_source_logs(self, run_id: int) -> list[dict]:
+        """查询指定运行的源爬取详情"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT id, run_id, source_name, url, success,
+                      error_msg, char_count, news_count
+               FROM source_logs WHERE run_id = ?
+               ORDER BY success DESC, source_name ASC""",
+            (run_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def close(self) -> None:
         """关闭数据库连接"""
         if self._conn:

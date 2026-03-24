@@ -285,9 +285,33 @@ def main() -> None:
         action="store_true",
         help="以定时调度模式运行（使用 settings.yaml 中的 cron 配置）",
     )
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="启动 Web UI 服务",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Web UI 服务端口（默认 8080）",
+    )
     args = parser.parse_args()
 
-    if args.schedule:
+    if args.web:
+        import uvicorn
+        import yaml
+
+        settings_path = ROOT_DIR / "config" / "settings.yaml"
+        with open(settings_path, encoding="utf-8") as f:
+            settings = yaml.safe_load(f) or {}
+
+        from src.web import create_app
+
+        app = create_app(settings)
+        logger.info("启动 Web UI: http://0.0.0.0:%d", args.port)
+        uvicorn.run(app, host="0.0.0.0", port=args.port)
+    elif args.schedule:
         settings_path = ROOT_DIR / "config" / "settings.yaml"
         _run_scheduler(settings_path)
     else:
