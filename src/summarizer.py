@@ -3,7 +3,8 @@
 import json
 import logging
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from openai import AsyncOpenAI
 
@@ -47,6 +48,7 @@ MERGE_PROMPT = """你是一位资讯编辑。以下是从多个来源提取的�
 @dataclass
 class NewsItem:
     """单条新闻"""
+
     summary: str
     url: str
     importance: int
@@ -61,7 +63,7 @@ def _create_client(settings: dict) -> AsyncOpenAI:
     )
 
 
-def _parse_news_json(text: str) -> list[dict]:
+def _parse_news_json(text: str) -> list[dict[str, Any]]:
     """从 LLM 响应中解析 JSON 数组
 
     处理可能被 markdown 代码块包裹的 JSON。
@@ -71,9 +73,12 @@ def _parse_news_json(text: str) -> list[dict]:
     if text.startswith("```"):
         lines = text.split("\n")
         # 去掉首尾的 ``` 行
-        lines = [l for l in lines if not l.strip().startswith("```")]
+        lines = [line for line in lines if not line.strip().startswith("```")]
         text = "\n".join(lines)
-    return json.loads(text)
+    parsed = json.loads(text)
+    if not isinstance(parsed, list):
+        return []
+    return [item for item in parsed if isinstance(item, dict)]
 
 
 async def extract_news(

@@ -4,8 +4,8 @@ import logging
 from dataclasses import dataclass
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CrawlResult:
     """单个资讯源的爬取结果"""
+
     source_name: str
     category: str
     url: str
@@ -57,42 +58,48 @@ async def crawl_sources(
             config=crawler_config,
         )
 
-        for source, raw in zip(enabled, raw_results):
+        for source, raw in zip(enabled, raw_results, strict=False):
             try:
                 if raw.success and raw.markdown:
                     # markdown 返回 MarkdownGenerationResult，含 fit_markdown / raw_markdown
                     md_result = raw.markdown
                     content = md_result.fit_markdown or md_result.raw_markdown or ""
                     if content:
-                        results.append(CrawlResult(
-                            source_name=source["name"],
-                            category=source.get("category", ""),
-                            url=source["url"],
-                            markdown=content,
-                            success=True,
-                        ))
+                        results.append(
+                            CrawlResult(
+                                source_name=source["name"],
+                                category=source.get("category", ""),
+                                url=source["url"],
+                                markdown=content,
+                                success=True,
+                            )
+                        )
                         logger.info("✅ 爬取成功: %s (%d 字符)", source["name"], len(content))
                         continue
                 # 爬取失败或内容为空
                 error_msg = getattr(raw, "error_message", None) or "内容为空"
-                results.append(CrawlResult(
-                    source_name=source["name"],
-                    category=source.get("category", ""),
-                    url=source["url"],
-                    markdown="",
-                    success=False,
-                    error=error_msg,
-                ))
+                results.append(
+                    CrawlResult(
+                        source_name=source["name"],
+                        category=source.get("category", ""),
+                        url=source["url"],
+                        markdown="",
+                        success=False,
+                        error=error_msg,
+                    )
+                )
                 logger.warning("❌ 爬取失败: %s — %s", source["name"], error_msg)
             except Exception as e:
-                results.append(CrawlResult(
-                    source_name=source["name"],
-                    category=source.get("category", ""),
-                    url=source["url"],
-                    markdown="",
-                    success=False,
-                    error=str(e),
-                ))
+                results.append(
+                    CrawlResult(
+                        source_name=source["name"],
+                        category=source.get("category", ""),
+                        url=source["url"],
+                        markdown="",
+                        success=False,
+                        error=str(e),
+                    )
+                )
                 logger.warning("❌ 爬取异常: %s — %s", source["name"], e)
 
     success_count = sum(1 for r in results if r.success)

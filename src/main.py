@@ -4,14 +4,15 @@ import asyncio
 import logging
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
 
-from src.crawler import crawl_sources
-from src.summarizer import extract_news, merge_and_rank
 from src.composer import compose_brief
+from src.crawler import crawl_sources
 from src.pusher import DingTalkPusher
+from src.summarizer import extract_news, merge_and_rank
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +20,16 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
-def _load_yaml(path: Path) -> dict:
+def _load_yaml(path: Path) -> dict[str, Any]:
     """加载 YAML 配置文件"""
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    if isinstance(data, dict):
+        return data
+    return {}
 
 
-async def generate_daily_brief():
+async def generate_daily_brief() -> None:
     """生成每日简报的完整流程"""
     # 0. 加载环境变量
     load_dotenv(ROOT_DIR / ".env")
@@ -118,7 +122,7 @@ async def generate_daily_brief():
     logger.info("========== 云雀简报 — 生成完毕 ==========")
 
 
-def main():
+def main() -> None:
     """CLI 入口"""
     asyncio.run(generate_daily_brief())
 

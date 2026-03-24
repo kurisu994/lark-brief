@@ -60,10 +60,7 @@ class DingTalkPusher:
         """构建完整的带签名的 Webhook URL"""
         timestamp, sign = self._sign()
         return (
-            f"{self.webhook_url}"
-            f"?access_token={self.access_token}"
-            f"&timestamp={timestamp}"
-            f"&sign={sign}"
+            f"{self.webhook_url}?access_token={self.access_token}&timestamp={timestamp}&sign={sign}"
         )
 
     async def push(self, title: str, content: str) -> bool:
