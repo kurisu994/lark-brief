@@ -28,3 +28,88 @@ sources:
     url: https://www.reuters.com/technology/
     category: 海外科技
     enabled: true
+
+  - name: TechCrunch
+    url: https://techcrunch.com
+    category: 海外科技
+    enabled: true
+
+  - name: The Verge Tech
+    url: https://www.theverge.com/tech
+    category: 海外科技
+    enabled: true
+
+  - name: Ars Technica
+    url: https://arstechnica.com
+    category: 技术深度
+    enabled: true
+
+  - name: VentureBeat AI
+    url: https://venturebeat.com/ai/
+    category: AI产业
+    enabled: true
+
+  - name: 工信部新闻发布
+    url: https://www.miit.gov.cn
+    category: 政策监管
+    enabled: true
+
+  - name: 国家网信办发布
+    url: https://www.cac.gov.cn
+    category: 政策监管
+    enabled: true
+
+  - name: IT之家
+    url: https://www.ithome.com
+    category: 国内科技
+    enabled: true
+
+  - name: 雷峰网
+    url: https://www.leiphone.com
+    category: AI产业
+    enabled: true
+
+  - name: 虎嗅
+    url: https://www.huxiu.com
+    category: 商业科技
+    enabled: true
+
+  - name: 澎湃新闻
+    url: https://www.thepaper.cn
+    category: 国内时事
+    enabled: true
+
+  - name: 新华网
+    url: https://www.news.cn
+    category: 国内时事
+    enabled: true
+
+  - name: 中国新闻网
+    url: https://www.chinanews.com.cn
+    category: 国内时事
+    enabled: true
+
+  - name: 央视新闻
+    url: https://news.cctv.com
+    category: 国内时事
+    enabled: true
+
+  - name: BBC World
+    url: https://www.bbc.com/news/world
+    category: 国际时事
+    enabled: true
+
+  - name: AP News World
+    url: https://apnews.com/world-news
+    category: 国际时事
+    enabled: true
+
+  - name: Al Jazeera News
+    url: https://www.aljazeera.com/news/
+    category: 国际时事
+    enabled: true
+
+  - name: The Guardian World
+    url: https://www.theguardian.com/world
+    category: 国际时事
+    enabled: true
