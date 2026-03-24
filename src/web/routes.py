@@ -149,6 +149,69 @@ def register_routes(app: FastAPI) -> None:
         sources = store.get_source_logs(run_id)
         return JSONResponse({"sources": sources})
 
+    # ========== 统计页面（Phase 2） ==========
+
+    @app.get("/stats", response_class=HTMLResponse)
+    async def stats_page(
+        request: Request,
+        days: int = 30,
+        health_days: int = 7,
+        store: Store = Depends(get_store),
+        templates: Jinja2Templates = Depends(get_templates),
+    ) -> HTMLResponse:
+        """统计面板页"""
+        overview = store.get_stats_overview()
+        trend = store.get_success_trend(days=days)
+        sources_health = store.get_source_health(days=health_days)
+
+        # 为每个源附加近期逐日状态
+        for src in sources_health:
+            src["recent"] = store.get_source_recent_status(
+                src["source_name"], days=health_days
+            )
+
+        return templates.TemplateResponse(
+            request,
+            "stats.html",
+            {
+                "overview": overview,
+                "trend": trend,
+                "sources_health": sources_health,
+                "days": days,
+                "health_days": health_days,
+            },
+        )
+
+    # ========== 统计 API（Phase 2） ==========
+
+    @app.get("/api/stats/overview")
+    async def api_stats_overview(
+        store: Store = Depends(get_store),
+    ) -> JSONResponse:
+        """总体统计 API"""
+        return JSONResponse(store.get_stats_overview())
+
+    @app.get("/api/stats/trend")
+    async def api_stats_trend(
+        days: int = 30,
+        store: Store = Depends(get_store),
+    ) -> JSONResponse:
+        """成功率趋势 API"""
+        return JSONResponse({"days": days, "data": store.get_success_trend(days=days)})
+
+    @app.get("/api/stats/sources")
+    async def api_stats_sources(
+        days: int = 7,
+        store: Store = Depends(get_store),
+    ) -> JSONResponse:
+        """各源健康度 API"""
+        health = store.get_source_health(days=days)
+        for src in health:
+            src["recent"] = store.get_source_recent_status(
+                src["source_name"], days=days
+            )
+        return JSONResponse({"days": days, "data": health})
+
     # ========== 错误处理 ==========
 
     @app.exception_handler(404)

@@ -239,6 +239,83 @@ class Store:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    # ========== 统计查询方法（Phase 2） ==========
+
+    def get_stats_overview(self) -> dict:
+        """总体统计：总运行次数、平均成功率、平均耗时"""
+        conn = self._get_conn()
+        row = conn.execute(
+            """SELECT
+                 COUNT(*) AS total_runs,
+                 COALESCE(AVG(
+                   CASE WHEN total_sources > 0
+                        THEN CAST(success_count AS REAL) / total_sources
+                        ELSE 0 END
+                 ), 0) AS avg_success_rate,
+                 COALESCE(AVG(duration_sec), 0) AS avg_duration_sec,
+                 COALESCE(AVG(news_count), 0) AS avg_news_count
+               FROM run_logs WHERE status != 'running'"""
+        ).fetchone()
+        return dict(row) if row else {
+            "total_runs": 0, "avg_success_rate": 0,
+            "avg_duration_sec": 0, "avg_news_count": 0,
+        }
+
+    def get_success_trend(self, days: int = 30) -> list[dict]:
+        """近 N 天成功率趋势数据"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT
+                 run_date,
+                 total_sources,
+                 success_count,
+                 CASE WHEN total_sources > 0
+                      THEN ROUND(CAST(success_count AS REAL) / total_sources, 3)
+                      ELSE 0 END AS success_rate,
+                 news_count,
+                 duration_sec
+               FROM run_logs
+               WHERE status != 'running'
+                 AND run_date >= date('now', ?)
+               ORDER BY run_date ASC""",
+            (f"-{days} days",),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_source_health(self, days: int = 7) -> list[dict]:
+        """各源近 N 天健康度"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT
+                 sl.source_name,
+                 COUNT(*) AS total,
+                 SUM(sl.success) AS success_count,
+                 ROUND(CAST(SUM(sl.success) AS REAL) / COUNT(*), 3) AS success_rate
+               FROM source_logs sl
+               JOIN run_logs rl ON sl.run_id = rl.id
+               WHERE rl.run_date >= date('now', ?)
+                 AND sl.source_name NOT LIKE '%[LLM]'
+               GROUP BY sl.source_name
+               ORDER BY success_rate ASC, sl.source_name ASC""",
+            (f"-{days} days",),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_source_recent_status(self, source_name: str, days: int = 7) -> list[int]:
+        """获取单个源近 N 天的逐日状态（1=成功, 0=失败）"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT sl.success
+               FROM source_logs sl
+               JOIN run_logs rl ON sl.run_id = rl.id
+               WHERE sl.source_name = ?
+                 AND rl.run_date >= date('now', ?)
+                 AND sl.source_name NOT LIKE '%[LLM]'
+               ORDER BY rl.run_date ASC""",
+            (source_name, f"-{days} days"),
+        ).fetchall()
+        return [row[0] for row in rows]
+
     def close(self) -> None:
         """关闭数据库连接"""
         if self._conn:
