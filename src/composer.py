@@ -39,7 +39,6 @@ def compose_brief(news_items: list[NewsItem], today: date | None = None) -> str:
 
     for i, item in enumerate(news_items, 1):
         lines.append(f"{i}. {item.summary}")
-        lines.append(f"   🔗 {item.url}")
         lines.append("")
 
     return "\n".join(lines)

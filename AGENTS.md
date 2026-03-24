@@ -2,30 +2,30 @@
 
 ## 项目概述
 
-每日资讯简报自动生成工具，四阶段管线：**爬取 → LLM 总结 → 格式化简报 MD → 推送（钉钉）**。
+每日资讯简报自动生成工具，四阶段管线：**爬取 → LLM 总结 → 格式化简报 MD → 推送（钉钉/飞书）**。
 
 ## 架构
 
 ```
 src/main.py          # 入口，串联完整异步流程 (asyncio)
-src/crawler.py       # 爬取模块 — crawl4ai 并发爬取 + PruningContentFilter 去噪
-src/summarizer.py    # 总结模块 — 火山引擎 LLM 提取摘要 + 跨源去重排序
+src/crawler.py       # 爬取模块 — crawl4ai 三阶段爬取（批量→特殊源→重试）+ PruningContentFilter 去噪
+src/summarizer.py    # 总结模块 — 火山引擎 LLM 并行提取摘要 + 跨源去重排序
 src/composer.py      # 组装模块 — 格式化简报 MD（含 borax 农历日期）
-src/pusher.py        # 推送模块 — 钉钉机器人 Webhook（HMAC-SHA256 加签）
+src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-SHA256 加签）
 config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、推送渠道
 config/sources.yaml  # 资讯源列表：name/url/category/enabled
 output/              # 生成的简报归档，格式 YYYY-MM-DD.md
 ```
 
-**数据流**: `sources.yaml → crawler(CrawlResult) → summarizer(NewsItem) → composer(str) → output/*.md + pusher(钉钉)`
+**数据流**: `sources.yaml → crawler(CrawlResult) → summarizer(NewsItem) → composer(str) → output/*.md + pusher(钉钉/飞书)`
 
 ## 关键约定
 
-- **异步优先**: 爬取和 LLM 调用均为 `async`，入口通过 `asyncio.run()` 驱动
+- **异步优先**: 爬取和 LLM 调用均为 `async`，LLM 提取使用 `asyncio.gather` 并行化，入口通过 `asyncio.run()` 驱动
 - **数据类传递**: 模块间通过 `dataclass` 传递数据（`CrawlResult`、`NewsItem`），不使用裸 dict
 - **LLM 协议**: 使用 `openai` SDK 连接火山引擎（只替换 `base_url`），API Key 通过环境变量 `ARK_API_KEY` 读取
 - **配置与代码分离**: 所有可变参数放 YAML，代码中不硬编码资讯源或模型 ID
-- **简报格式固定**: 输出格式见 `docs/implementation-plan.md` §二，编号列表 + 🔗链接，全中文，10-15 条
+- **简报格式固定**: 输出格式见 `docs/implementation-plan.md` §二，编号列表，全中文，10-20 条
 
 ## 开发环境
 
@@ -48,7 +48,7 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 | `openai` | 调用火山引擎 LLM（兼容 OpenAI 协议） |
 | `borax` | `borax.calendars` 生成中国农历日期 |
 | `pyyaml` | 读取 YAML 配置 |
-| `httpx` | 异步 HTTP 客户端（钉钉 Webhook 推送） |
+| `httpx` | 异步 HTTP 客户端（钉钉/飞书 Webhook 推送） |
 | `python-dotenv` | 加载 `.env` 环境变量 |
 
 ## 添加新资讯源
@@ -66,5 +66,6 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 - 详细需求和 LLM Prompt 设计见 `docs/implementation-plan.md`
 - 根目录 `main.py` 是占位文件，实际入口为 `src/main.py`
 - 钉钉推送需配置环境变量：`D_ACCESS_TOKEN`、`D_SECRET`（见 `.env`）
+- 飞书推送需配置环境变量：`FS_ACCESS_TOKEN`、`FS_SECRET`（见 `.env`）
 - 无测试框架，当前不编写测试
 - 代码注释使用中文，变量/函数名使用英文
