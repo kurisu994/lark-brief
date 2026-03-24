@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcups2 libdrm2 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
     libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
     libcairo2 libasound2 libwayland-client0 \
+    # lxml 编译依赖
+    libxml2-dev libxslt-dev \
     # 中文字体支持
     fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*

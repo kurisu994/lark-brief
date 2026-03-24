@@ -18,7 +18,7 @@ services:
     container_name: lark-brief-web
     command: ["--web"]
     ports:
-      - "8080:8080"
+      - "9090:8080"
     env_file:
       - .env
     volumes:
