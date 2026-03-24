@@ -7,12 +7,12 @@
 ## 架构
 
 ```
-src/main.py          # 入口，串联完整异步流程 (asyncio)，支持 --web / --schedule / 默认单次
+src/main.py          # 入口，串联完整异步流程 (asyncio)，支持 --web / --schedule / 默认单次 + 成功率告警
 src/crawler.py       # 爬取模块 — crawl4ai 三阶段爬取（批量→特殊源→重试）+ PruningContentFilter 去噪
 src/summarizer.py    # 总结模块 — 火山引擎 LLM 并行提取摘要 + 跨源去重排序
 src/composer.py      # 组装模块 — 格式化简报 MD（含 borax 农历日期）
-src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-SHA256 加签）
-src/store.py         # 持久化模块 — SQLite 运行日志 + Web UI 只读查询
+src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-SHA256 加签）+ 简报美化格式
+src/store.py         # 持久化模块 — SQLite 运行日志（同日覆盖）+ 文件大小自动清理 + Web UI 只读查询
 src/web/             # Web UI 模块 — FastAPI + Jinja2 + Tailwind（欧美极简风格）
   __init__.py        # create_app() 工厂函数
   i18n.py            # 国际化模块（中英文切换，contextvars + JSON 翻译文件）
@@ -36,6 +36,9 @@ data/                # SQLite 数据库（lark-brief.db）
 - **LLM 协议**: 使用 `openai` SDK 连接火山引擎（只替换 `base_url`），API Key 通过环境变量 `ARK_API_KEY` 读取
 - **配置与代码分离**: 所有可变参数放 YAML，代码中不硬编码资讯源或模型 ID
 - **简报格式固定**: 输出格式见 `docs/implementation-plan.md` §二，编号列表，全中文，10-20 条
+- **同日覆盖**: `store.start_run()` 同一天重复执行时先 DELETE 旧记录再 INSERT，确保每天只保留一条运行记录
+- **告警机制**: 爬取全部失败或成功率低于阈值时，通过已启用的推送渠道发送告警消息
+- **LLM 降级**: 去重排序 LLM 调用失败时，自动降级为按 importance 排序取 Top N
 
 ## 开发环境
 
@@ -64,6 +67,8 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 | `fastapi` | Web UI 后端框架（async 原生，SSR + JSON API） |
 | `uvicorn` | ASGI 服务器（运行 FastAPI 应用） |
 | `jinja2` | 模板引擎（服务端渲染 HTML 页面） |
+| `apscheduler` | 定时调度（CronTrigger，`--schedule` 模式） |
+| `socksio` | SOCKS 代理支持（可选） |
 
 ## 添加新资讯源
 

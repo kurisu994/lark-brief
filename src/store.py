@@ -87,8 +87,14 @@ class Store:
         return self._conn
 
     def start_run(self, run_date: str) -> int:
-        """记录一次运行开始，返回 run_id"""
+        """记录一次运行开始，返回 run_id
+
+        同一天重复执行时，删除旧记录后插入新记录（覆盖语义）。
+        关联的 source_logs 由外键 ON DELETE CASCADE 自动清理。
+        """
         conn = self._get_conn()
+        # 删除同日期旧记录，确保一天只有一条
+        conn.execute("DELETE FROM run_logs WHERE run_date = ?", (run_date,))
         cursor = conn.execute(
             "INSERT INTO run_logs (run_date, started_at, status) VALUES (?, ?, 'running')",
             (run_date, datetime.now().isoformat()),
