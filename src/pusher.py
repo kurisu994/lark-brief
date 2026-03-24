@@ -81,13 +81,15 @@ class DingTalkPusher:
     3. 将 timestamp 和 sign 附加到 Webhook URL 参数中
     """
 
-    def __init__(self, webhook_url: str | None = None):
+    def __init__(self, webhook_url: str | None = None, proxy: str | None = None):
         """初始化钉钉推送器
 
         Args:
             webhook_url: Webhook 基础 URL（来自 settings.yaml）
                          access_token 和 secret 从环境变量读取
+            proxy: 推送使用的代理地址
         """
+        self.proxy = proxy
         self.webhook_url = webhook_url or os.environ.get(
             "D_WEB_HOOK", "https://oapi.dingtalk.com/robot/send"
         )
@@ -170,7 +172,7 @@ class DingTalkPusher:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=30, proxy=self.proxy) as client:
                 response = await client.post(url, json=payload)
                 result = response.json()
 
@@ -199,13 +201,15 @@ class FeishuPusher:
     3. 将 timestamp 和 sign 放入 POST 请求体中
     """
 
-    def __init__(self, webhook_url: str | None = None):
+    def __init__(self, webhook_url: str | None = None, proxy: str | None = None):
         """初始化飞书推送器
 
         Args:
             webhook_url: Webhook 基础 URL（来自 settings.yaml）
                          access_token 和 secret 从环境变量读取
+            proxy: 推送使用的代理地址
         """
+        self.proxy = proxy
         self.webhook_url = webhook_url or "https://open.feishu.cn/open-apis/bot/v2/hook"
         self.access_token = os.environ.get("FS_ACCESS_TOKEN", "")
         self.secret = os.environ.get("FS_SECRET", "")
@@ -326,7 +330,7 @@ class FeishuPusher:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=30, proxy=self.proxy) as client:
                 response = await client.post(url, json=payload)
                 result = response.json()
 

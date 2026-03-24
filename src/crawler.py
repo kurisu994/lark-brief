@@ -71,6 +71,7 @@ async def crawl_sources(
     filter_threshold: float = 0.45,
     page_timeout: int = 60000,
     retry_count: int = 0,
+    proxy: str | None = None,
 ) -> list[CrawlResult]:
     """并发爬取所有启用的资讯源，返回爬取结果列表
 
@@ -80,6 +81,7 @@ async def crawl_sources(
         filter_threshold: PruningContentFilter 去噪阈值
         page_timeout: 页面加载超时（毫秒）
         retry_count: 失败源的重试次数
+        proxy: 代理地址（例如 'socks5://127.0.0.1:1080'）
     """
     enabled = [s for s in sources if s.get("enabled", True)]
     if not enabled:
@@ -92,7 +94,7 @@ async def crawl_sources(
 
     logger.info("开始爬取 %d 个资讯源: %s", len(enabled), [s["name"] for s in enabled])
 
-    browser_config = BrowserConfig(headless=headless)
+    browser_config = BrowserConfig(headless=headless, proxy=proxy)
     default_config = _make_crawler_config(filter_threshold, page_timeout)
 
     results: list[CrawlResult] = []

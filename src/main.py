@@ -36,16 +36,23 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 async def _push_alert(
     pusher_settings: dict[str, Any],
     message: str,
+    proxy: str | None = None,
 ) -> None:
     """通过已启用的推送渠道发送告警消息"""
     dingtalk_cfg = pusher_settings.get("dingtalk", {})
     if dingtalk_cfg.get("enabled", False):
-        pusher = DingTalkPusher(webhook_url=dingtalk_cfg.get("webhook_url"))
+        pusher = DingTalkPusher(
+            webhook_url=dingtalk_cfg.get("webhook_url"),
+            proxy=proxy,
+        )
         await pusher.push(title="⚠️ 云雀简报告警", content=message)
 
     feishu_cfg = pusher_settings.get("feishu", {})
     if feishu_cfg.get("enabled", False):
-        fs_pusher = FeishuPusher(webhook_url=feishu_cfg.get("webhook_url"))
+        fs_pusher = FeishuPusher(
+            webhook_url=feishu_cfg.get("webhook_url"),
+            proxy=proxy,
+        )
         await fs_pusher.push(title="⚠️ 云雀简报告警", content=message)
 
 
@@ -65,6 +72,12 @@ async def generate_daily_brief() -> None:
     pusher_settings = settings.get("pushers", {})
     store_settings = settings.get("store", {})
     alert_settings = settings.get("alert", {})
+    network_settings = settings.get("network", {})
+
+    proxy = network_settings.get("proxy")
+    crawler_proxy = proxy if proxy and network_settings.get("enable_for_crawler") else None
+    llm_proxy = proxy if proxy and network_settings.get("enable_for_llm") else None
+    pusher_proxy = proxy if proxy and network_settings.get("enable_for_pusher") else None
 
     # 配置日志
     logging.basicConfig(
@@ -90,6 +103,7 @@ async def generate_daily_brief() -> None:
             filter_threshold=crawler_settings.get("filter_threshold", 0.45),
             page_timeout=crawler_settings.get("page_timeout", 60000),
             retry_count=crawler_settings.get("retry_count", 0),
+            proxy=crawler_proxy,
         )
 
         # 记录每源爬取结果
@@ -109,7 +123,7 @@ async def generate_daily_brief() -> None:
             store.finish_run(run_id, len(crawl_results), 0, 0, start_time, "failed")
             # 发送告警
             if alert_settings.get("enabled", False):
-                await _push_alert(pusher_settings, "⚠️ 云雀简报全部资讯源爬取失败，请检查网络或源配置。")
+                await _push_alert(pusher_settings, "⚠️ 云雀简报全部资讯源爬取失败，请检查网络或源配置。", proxy=pusher_proxy)
             return
 
         logger.info("成功爬取 %d/%d 个源", len(success_results), len(crawl_results))
@@ -124,7 +138,7 @@ async def generate_daily_brief() -> None:
                 f"({success_rate:.0%} < {min_rate:.0%})\n\n"
                 f"失败源: {', '.join(failed_names)}"
             )
-            await _push_alert(pusher_settings, alert_msg)
+            await _push_alert(pusher_settings, alert_msg, proxy=pusher_proxy)
 
         # 3. LLM 单源提取（并行）
         extract_tasks = [
@@ -133,6 +147,7 @@ async def generate_daily_brief() -> None:
                 category=result.category,
                 markdown=result.markdown,
                 settings=llm_settings,
+                proxy=llm_proxy,
             )
             for result in success_results
         ]
@@ -166,6 +181,7 @@ async def generate_daily_brief() -> None:
             settings=llm_settings,
             max_items=max_items,
             min_items=min_items,
+            proxy=llm_proxy,
         )
 
         if not ranked_news:
@@ -191,14 +207,20 @@ async def generate_daily_brief() -> None:
         # 7. 推送到各渠道
         dingtalk_cfg = pusher_settings.get("dingtalk", {})
         if dingtalk_cfg.get("enabled", False):
-            pusher = DingTalkPusher(webhook_url=dingtalk_cfg.get("webhook_url"))
+            pusher = DingTalkPusher(
+                webhook_url=dingtalk_cfg.get("webhook_url"),
+                proxy=pusher_proxy,
+            )
             await pusher.push(title="今日简报", content=brief_md)
         else:
             logger.info("钉钉推送未启用，跳过")
 
         feishu_cfg = pusher_settings.get("feishu", {})
         if feishu_cfg.get("enabled", False):
-            fs_pusher = FeishuPusher(webhook_url=feishu_cfg.get("webhook_url"))
+            fs_pusher = FeishuPusher(
+                webhook_url=feishu_cfg.get("webhook_url"),
+                proxy=pusher_proxy,
+            )
             await fs_pusher.push(title="今日简报", content=brief_md)
         else:
             logger.info("飞书推送未启用，跳过")
@@ -220,7 +242,11 @@ async def generate_daily_brief() -> None:
         )
         logger.exception("❌ 云雀简报运行异常")
         if alert_settings.get("enabled", False):
-            await _push_alert(pusher_settings, "❌ 云雀简报运行异常，请查看日志。")
+            # 这时推送可能会因为局部作用域找不到 proxy 配置，我们捕获配置
+            network_settings = settings.get("network", {}) if 'settings' in locals() else {}
+            proxy = network_settings.get("proxy")
+            pusher_proxy = proxy if proxy and network_settings.get("enable_for_pusher") else None
+            await _push_alert(pusher_settings, "❌ 云雀简报运行异常，请查看日志。", proxy=pusher_proxy)
     finally:
         # 清理过大的数据库文件
         store.cleanup_if_needed()

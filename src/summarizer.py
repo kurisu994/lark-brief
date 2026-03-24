@@ -6,6 +6,7 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+import httpx
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
@@ -55,12 +56,18 @@ class NewsItem:
     importance: int
 
 
-def _create_client(settings: dict) -> AsyncOpenAI:
+def _create_client(settings: dict, proxy: str | None = None) -> AsyncOpenAI:
     """创建火山引擎 LLM 客户端"""
+    http_client = httpx.AsyncClient(
+        proxy=proxy,
+        timeout=settings.get("query_timeout", 120),
+    ) if proxy else None
+
     return AsyncOpenAI(
         api_key=os.environ.get("ARK_API_KEY", ""),
         base_url=settings.get("base_url", "https://ark.cn-beijing.volces.com/api/v3"),
         timeout=settings.get("query_timeout", 120),
+        http_client=http_client,
     )
 
 
@@ -87,6 +94,7 @@ async def extract_news(
     category: str,
     markdown: str,
     settings: dict,
+    proxy: str | None = None,
 ) -> list[NewsItem]:
     """从单个资讯源的内容中提取新闻摘要
 
@@ -95,8 +103,9 @@ async def extract_news(
         category: 资讯分类
         markdown: 爬取到的 markdown 内容
         settings: LLM 配置（来自 settings.yaml 的 llm 节）
+        proxy: 网络代理
     """
-    client = _create_client(settings)
+    client = _create_client(settings, proxy)
     prompt = EXTRACT_PROMPT.format(
         source_name=source_name,
         category=category,
@@ -134,6 +143,7 @@ async def merge_and_rank(
     settings: dict,
     max_items: int = 15,
     min_items: int = 10,
+    proxy: str | None = None,
 ) -> list[NewsItem]:
     """跨源去重、按重要性排序，选取指定数量的新闻
 
@@ -142,6 +152,7 @@ async def merge_and_rank(
         settings: LLM 配置
         max_items: 最大条目数
         min_items: 最小条目数
+        proxy: 网络代理
     """
     if not all_news:
         return []
@@ -151,7 +162,7 @@ async def merge_and_rank(
         logger.info("新闻总数 (%d) 不超过上限 (%d)，跳过 LLM 去重", len(all_news), max_items)
         return sorted(all_news, key=lambda x: x.importance, reverse=True)
 
-    client = _create_client(settings)
+    client = _create_client(settings, proxy)
     all_news_json = json.dumps(
         [asdict(item) for item in all_news],
         ensure_ascii=False,

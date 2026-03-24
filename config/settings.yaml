@@ -1,3 +1,9 @@
+network:
+  proxy: "" # 支持 http:// 或 socks5://，为空则禁用全局代理
+  enable_for_crawler: true          # 爬取时是否使用代理
+  enable_for_llm: false             # 请求 LLM 时是否使用代理
+  enable_for_pusher: false          # 推送时是否使用代理
+
 llm:
   base_url: https://ark.cn-beijing.volces.com/api/v3
   model: "deepseek-v3-2-251201"
