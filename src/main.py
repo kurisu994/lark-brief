@@ -248,6 +248,10 @@ def _run_scheduler(settings_path: Path) -> None:
         timezone=timezone,
     )
 
+    # 先创建并设置事件循环，AsyncIOScheduler.start() 需要活跃的循环
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(generate_daily_brief, trigger, id="daily_brief", name="每日简报生成")
     scheduler.start()
@@ -256,8 +260,6 @@ def _run_scheduler(settings_path: Path) -> None:
     logger.info("下次执行时间: %s", scheduler.get_job("daily_brief").next_run_time)
 
     # 优雅退出
-    loop = asyncio.new_event_loop()
-
     def _shutdown(sig: int, frame: object) -> None:
         logger.info("收到信号 %s，正在停止调度器...", sig)
         scheduler.shutdown(wait=False)
