@@ -3,6 +3,7 @@ sources:
     url: https://www.infoq.cn/news
     category: 开发技术
     enabled: true
+    wait_for: ".news-list"  # SPA 页面，等待新闻列表渲染
 
   - name: Hacker News
     url: https://news.ycombinator.com

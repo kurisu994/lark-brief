@@ -57,6 +57,8 @@ async def generate_daily_brief() -> None:
         sources=sources,
         headless=crawler_settings.get("headless", True),
         filter_threshold=crawler_settings.get("filter_threshold", 0.45),
+        page_timeout=crawler_settings.get("page_timeout", 60000),
+        retry_count=crawler_settings.get("retry_count", 0),
     )
 
     # 检查爬取结果
