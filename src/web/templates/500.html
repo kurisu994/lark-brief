@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Server Error — Lark Brief{% endblock %}
+{% block title %}{{ t('error_server') }} — {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="flex flex-col items-center justify-center py-24 text-center">
@@ -7,11 +7,11 @@
     <i data-lucide="alert-triangle" class="w-8 h-8 text-red-400"></i>
   </div>
   <h1 class="text-4xl font-bold text-slate-900 dark:text-slate-100">500</h1>
-  <p class="text-slate-500 dark:text-slate-400 mt-2 text-base">Something went wrong on our end.</p>
+  <p class="text-slate-500 dark:text-slate-400 mt-2 text-base">{{ t('error_500_desc') }}</p>
   <a href="/"
      class="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
     <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-    Back to dashboard
+    {{ t('error_back') }}
   </a>
 </div>
 {% endblock %}

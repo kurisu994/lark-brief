@@ -9,6 +9,14 @@ from fastapi.templating import Jinja2Templates
 
 from src.store import Store
 
+from .i18n import (
+    SUPPORTED_LOCALES,
+    create_i18n_middleware,
+    get_html_lang,
+    get_locale,
+    load_translations,
+    t,
+)
 from .routes import register_routes
 
 # 模块目录
@@ -29,6 +37,16 @@ def create_app(settings: dict[str, Any]) -> FastAPI:
 
     # 初始化模板引擎
     templates = Jinja2Templates(directory=str(_MODULE_DIR / "templates"))
+
+    # 加载国际化翻译文件并注册 Jinja2 全局函数
+    load_translations()
+    templates.env.globals["t"] = t
+    templates.env.globals["current_locale"] = get_locale
+    templates.env.globals["html_lang"] = get_html_lang
+    templates.env.globals["SUPPORTED_LOCALES"] = SUPPORTED_LOCALES
+
+    # 国际化中间件：每个请求前检测并设置语言
+    app.middleware("http")(create_i18n_middleware())
 
     # 初始化 Store（只读查询）
     store_cfg = settings.get("store", {})

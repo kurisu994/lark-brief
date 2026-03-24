@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="">
+<html lang="{{ html_lang() }}" class="">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Lark Brief{% endblock %}</title>
+  <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
 
   <!-- Tailwind CSS v4 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -28,21 +28,28 @@
   <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
     <nav class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
       <a href="/" class="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100 hover:text-accent transition-colors">
-        Lark Brief
+        {{ t('app_name') }}
       </a>
       <div class="flex items-center gap-4">
         <a href="/" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-          Dashboard
+          {{ t('nav_dashboard') }}
         </a>
         <a href="/stats" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-          Stats
+          {{ t('nav_stats') }}
         </a>
         <a href="/search" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
           <i data-lucide="search" class="w-4 h-4"></i>
         </a>
+        <!-- 语言切换 -->
+        <a href="/api/lang/{{ 'zh' if current_locale() == 'en' else 'en' }}"
+           class="text-xs font-medium px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700
+                  text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100
+                  hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+          {{ '中文' if current_locale() == 'en' else 'EN' }}
+        </a>
         <button id="theme-toggle" type="button"
                 class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                aria-label="Toggle dark mode">
+                aria-label="{{ t('nav_toggle_dark') }}">
           <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
           <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
         </button>
@@ -58,7 +65,7 @@
   <!-- 页脚 -->
   <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
     <div class="max-w-6xl mx-auto px-6 py-4 text-xs text-slate-400 dark:text-slate-500">
-      Lark Brief · Daily News Briefing Tool
+      {{ t('app_footer') }}
     </div>
   </footer>
 
@@ -83,7 +90,6 @@
 
     // 全局键盘快捷键：/ 聚焦搜索
     document.addEventListener('keydown', (e) => {
-      // 忽略输入框内的按键
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (e.key === '/') {

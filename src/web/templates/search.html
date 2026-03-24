@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Search{% if query %} — {{ query }}{% endif %} — Lark Brief{% endblock %}
+{% block title %}{{ t('search_title') }}{% if query %} — {{ query }}{% endif %} — {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -7,7 +7,7 @@
   <div>
     <a href="/" class="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
       <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-      Briefings
+      {{ t('brief_breadcrumb') }}
     </a>
   </div>
 
@@ -15,7 +15,7 @@
   <div>
     <form action="/search" method="get" class="relative">
       <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-      <input type="text" name="q" value="{{ query }}" placeholder="Search briefings…"
+      <input type="text" name="q" value="{{ query }}" placeholder="{{ t('search_placeholder') }}"
              id="search-input" autofocus
              class="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg
                     text-slate-900 dark:text-slate-100 placeholder-slate-400
@@ -26,7 +26,8 @@
   {% if query %}
   <!-- 结果计数 -->
   <p class="text-sm text-slate-500 dark:text-slate-400">
-    {{ results | length }} result{{ 's' if results | length != 1 else '' }} for
+    {% set rc = results | length %}
+    {% if rc == 1 %}{{ t('search_1_result') }}{% else %}{{ t('search_n_results', count=rc) }}{% endif %}
     <span class="font-medium text-slate-700 dark:text-slate-300">"{{ query }}"</span>
   </p>
 
@@ -37,7 +38,7 @@
     <a href="/brief/{{ r.date }}" class="block border border-slate-200 dark:border-slate-800 rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
       <div class="flex items-center justify-between mb-1">
         <span class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ r.date }}</span>
-        <span class="text-xs text-slate-400">{{ r.match_count }} match{{ 'es' if r.match_count != 1 else '' }}</span>
+        <span class="text-xs text-slate-400">{% if r.match_count == 1 %}{{ t('search_1_match') }}{% else %}{{ t('search_n_matches', count=r.match_count) }}{% endif %}</span>
       </div>
       <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{{ r.snippet }}</p>
     </a>
@@ -49,18 +50,18 @@
     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
       <i data-lucide="search-x" class="w-6 h-6 text-slate-400"></i>
     </div>
-    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">No results found</h3>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Try a different keyword.</p>
+    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('search_no_results') }}</h3>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('search_no_results_desc') }}</p>
   </div>
   {% endif %}
 
   {% else %}
   <!-- 初始状态 -->
   <div class="text-center py-12">
-    <p class="text-sm text-slate-400">Type a keyword to search across all briefings.</p>
+    <p class="text-sm text-slate-400">{{ t('search_initial_hint') }}</p>
     <p class="text-xs text-slate-400 mt-2">
       <kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono text-xs">/</kbd>
-      to focus search from any page
+      {{ t('search_shortcut_hint') }}
     </p>
   </div>
   {% endif %}

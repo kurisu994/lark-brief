@@ -1,0 +1,73 @@
+{
+  "app_name": "Lark Brief",
+  "app_footer": "Lark Brief · Daily News Briefing Tool",
+
+  "nav_dashboard": "Dashboard",
+  "nav_stats": "Stats",
+  "nav_toggle_dark": "Toggle dark mode",
+
+  "index_title": "Briefings",
+  "index_subtitle": "Browse your daily news briefings",
+  "index_generate": "Generate",
+  "index_generating": "Generating…",
+  "index_already_running": "Already running",
+  "index_started": "Started ✓",
+  "index_failed_btn": "Failed ✗",
+  "index_error": "Error",
+
+  "table_date": "Date",
+  "table_items": "Items",
+  "table_sources": "Sources",
+  "table_duration": "Duration",
+  "table_status": "Status",
+
+  "status_ok": "OK",
+  "status_running": "Running",
+  "status_failed": "Failed",
+  "status_success": "Success",
+  "status_completed": "Completed successfully",
+
+  "pagination_prev": "← Previous",
+  "pagination_next": "Next →",
+
+  "empty_no_briefings": "No briefings yet",
+  "empty_first_run": "Run your first briefing to get started.",
+
+  "brief_breadcrumb": "Briefings",
+  "brief_generated_at": "Generated at",
+  "brief_run_summary": "Run Summary",
+  "brief_source_details": "Source Details",
+  "brief_no_content": "Briefing content not available",
+  "brief_no_content_desc": "The markdown file for this date was not found.",
+
+  "stats_title": "Dashboard",
+  "stats_subtitle": "Overview of briefing generation performance",
+  "stats_total_runs": "Total Runs",
+  "stats_avg_success_rate": "Avg Success Rate",
+  "stats_avg_duration": "Avg Duration",
+  "stats_success_trend": "Success Rate — Last {days} Days",
+  "stats_source_health": "Source Health — Last {days} Days",
+  "stats_col_source": "Source",
+  "stats_col_rate": "Rate",
+  "stats_col_recent": "Recent",
+  "stats_no_data": "No data yet",
+  "stats_no_data_desc": "Statistics will appear after your first briefing run.",
+  "stats_chart_label": "Success Rate (%)",
+
+  "search_title": "Search",
+  "search_placeholder": "Search briefings…",
+  "search_1_result": "1 result for",
+  "search_n_results": "{count} results for",
+  "search_1_match": "1 match",
+  "search_n_matches": "{count} matches",
+  "search_no_results": "No results found",
+  "search_no_results_desc": "Try a different keyword.",
+  "search_initial_hint": "Type a keyword to search across all briefings.",
+  "search_shortcut_hint": "to focus search from any page",
+
+  "error_not_found": "Not Found",
+  "error_server": "Server Error",
+  "error_404_desc": "The page you're looking for doesn't exist.",
+  "error_500_desc": "Something went wrong on our end.",
+  "error_back": "Back to dashboard"
+}

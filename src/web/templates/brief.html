@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ date }} — Lark Brief{% endblock %}
+{% block title %}{{ date }} — {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -7,7 +7,7 @@
   <div>
     <a href="/" class="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
       <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-      Briefings
+      {{ t('brief_breadcrumb') }}
     </a>
   </div>
 
@@ -19,21 +19,21 @@
       {% if run.status == 'success' %}
         <span class="inline-flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          Completed successfully
+          {{ t('status_completed') }}
         </span>
       {% elif run.status == 'running' %}
         <span class="inline-flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-          Running
+          {{ t('status_running') }}
         </span>
       {% else %}
         <span class="inline-flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-          Failed
+          {{ t('status_failed') }}
         </span>
       {% endif %}
       {% if run.finished_at %}
-        · Generated at {{ run.finished_at[:16] | replace("T", " ") }}
+        · {{ t('brief_generated_at') }} {{ run.finished_at[:16] | replace("T", " ") }}
       {% endif %}
     </p>
     {% endif %}
@@ -55,8 +55,8 @@
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
           <i data-lucide="file-x" class="w-6 h-6 text-slate-400"></i>
         </div>
-        <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">Briefing content not available</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">The markdown file for this date was not found.</p>
+        <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('brief_no_content') }}</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('brief_no_content_desc') }}</p>
       </div>
       {% endif %}
     </div>
@@ -67,36 +67,36 @@
 
       <!-- Run Summary 卡片 -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Run Summary</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{{ t('brief_run_summary') }}</h2>
         <dl class="space-y-2.5 text-sm">
           <div class="flex justify-between">
-            <dt class="text-slate-500 dark:text-slate-400">Status</dt>
+            <dt class="text-slate-500 dark:text-slate-400">{{ t('table_status') }}</dt>
             <dd>
               {% if run.status == 'success' %}
                 <span class="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Success
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>{{ t('status_success') }}
                 </span>
               {% elif run.status == 'running' %}
                 <span class="inline-flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium">
-                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Running
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>{{ t('status_running') }}
                 </span>
               {% else %}
                 <span class="inline-flex items-center gap-1.5 text-red-700 dark:text-red-400 font-medium">
-                  <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Failed
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>{{ t('status_failed') }}
                 </span>
               {% endif %}
             </dd>
           </div>
           <div class="flex justify-between">
-            <dt class="text-slate-500 dark:text-slate-400">Sources</dt>
+            <dt class="text-slate-500 dark:text-slate-400">{{ t('table_sources') }}</dt>
             <dd class="font-medium">{{ run.success_count }} / {{ run.total_sources }}</dd>
           </div>
           <div class="flex justify-between">
-            <dt class="text-slate-500 dark:text-slate-400">Items</dt>
+            <dt class="text-slate-500 dark:text-slate-400">{{ t('table_items') }}</dt>
             <dd class="font-medium">{{ run.news_count }}</dd>
           </div>
           <div class="flex justify-between">
-            <dt class="text-slate-500 dark:text-slate-400">Duration</dt>
+            <dt class="text-slate-500 dark:text-slate-400">{{ t('table_duration') }}</dt>
             <dd class="font-medium">
               {% if run.duration_sec %}
                 {{ (run.duration_sec // 60) | int }}m {{ (run.duration_sec % 60) | round(0) | int }}s
@@ -111,7 +111,7 @@
       <!-- Source Details 卡片 -->
       {% if sources %}
       <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Source Details</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{{ t('brief_source_details') }}</h2>
         <ul class="space-y-1.5 text-sm max-h-80 overflow-y-auto">
           {% for src in sources %}
           <li class="flex items-start gap-2">

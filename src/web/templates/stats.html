@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Lark Brief{% endblock %}
+{% block title %}{{ t('stats_title') }} — {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
@@ -7,14 +7,14 @@
   <div>
     <a href="/" class="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
       <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-      Briefings
+      {{ t('brief_breadcrumb') }}
     </a>
   </div>
 
   <!-- 页面标题 -->
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Overview of briefing generation performance</p>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ t('stats_title') }}</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('stats_subtitle') }}</p>
   </div>
 
   <!-- KPI 卡片 -->
@@ -23,7 +23,7 @@
     <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Runs</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_total_runs') }}</span>
       </div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">
         {{ overview.total_runs }}
@@ -34,7 +34,7 @@
     <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="check-circle" class="w-4 h-4 text-slate-400"></i>
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg Success Rate</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_avg_success_rate') }}</span>
       </div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">
         {% if overview.avg_success_rate %}
@@ -49,7 +49,7 @@
     <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg Duration</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_avg_duration') }}</span>
       </div>
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">
         {% if overview.avg_duration_sec %}
@@ -65,7 +65,7 @@
   <!-- 成功率趋势图 -->
   <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
     <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-      Success Rate — Last {{ days }} Days
+      {{ t('stats_success_trend', days=days) }}
     </h2>
     <div class="h-64">
       <canvas id="trend-chart"></canvas>
@@ -78,16 +78,16 @@
   <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
       <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
-        Source Health — Last {{ health_days }} Days
+        {{ t('stats_source_health', days=health_days) }}
       </h2>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-5 py-3">Source</th>
-            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-5 py-3">Rate</th>
-            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-5 py-3">Recent</th>
+            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-5 py-3">{{ t('stats_col_source') }}</th>
+            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-5 py-3">{{ t('stats_col_rate') }}</th>
+            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-5 py-3">{{ t('stats_col_recent') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -127,8 +127,8 @@
     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
       <i data-lucide="bar-chart-3" class="w-6 h-6 text-slate-400"></i>
     </div>
-    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">No data yet</h3>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Statistics will appear after your first briefing run.</p>
+    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('stats_no_data') }}</h3>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('stats_no_data_desc') }}</p>
   </div>
   {% endif %}
 </div>
@@ -145,6 +145,7 @@
   const trendData = {{ trend | tojson }};
   const labels = trendData.map(d => d.run_date);
   const rates = trendData.map(d => (d.success_rate * 100).toFixed(1));
+  const chartLabel = {{ t('stats_chart_label') | tojson }};
 
   // 检测 Dark Mode
   const isDark = document.documentElement.classList.contains('dark');
@@ -157,7 +158,7 @@
     data: {
       labels: labels,
       datasets: [{
-        label: 'Success Rate (%)',
+        label: chartLabel,
         data: rates,
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.08)',

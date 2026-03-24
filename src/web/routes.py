@@ -6,12 +6,13 @@ import re
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from src.store import Store
 
 from .deps import get_output_dir, get_store, get_templates
+from .i18n import DEFAULT_LOCALE, SUPPORTED_LOCALES
 
 # 简报生成任务锁，防止重复触发
 _generate_lock = asyncio.Lock()
@@ -320,6 +321,20 @@ def register_routes(app: FastAPI) -> None:
             "search.html",
             {"query": q, "results": results},
         )
+
+    # ========== 语言切换（i18n） ==========
+
+    @app.get("/api/lang/{locale}")
+    async def switch_language(request: Request, locale: str) -> RedirectResponse:
+        """切换界面语言，通过 Cookie 持久化"""
+        if locale not in SUPPORTED_LOCALES:
+            locale = DEFAULT_LOCALE
+        referer = request.headers.get("referer", "/")
+        response = RedirectResponse(url=referer, status_code=302)
+        response.set_cookie(
+            "lang", locale, max_age=365 * 24 * 3600, httponly=True, samesite="lax"
+        )
+        return response
 
     # ========== 错误处理 ==========
 

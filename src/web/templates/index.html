@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Lark Brief{% endblock %}
+{% block title %}{{ t('nav_dashboard') }} — {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
   <!-- 页面标题 + 操作按钮 -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-semibold tracking-tight">Briefings</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Browse your daily news briefings</p>
+      <h1 class="text-2xl font-semibold tracking-tight">{{ t('index_title') }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('index_subtitle') }}</p>
     </div>
     <button id="generate-btn" type="button"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md
                    bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900
                    hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors">
       <i data-lucide="play" class="w-3.5 h-3.5"></i>
-      Generate
+      {{ t('index_generate') }}
     </button>
   </div>
 
@@ -25,11 +25,11 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-4 py-3">Date</th>
-            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3">Items</th>
-            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3">Sources</th>
-            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3 hidden sm:table-cell">Duration</th>
-            <th class="text-center font-medium text-slate-500 dark:text-slate-400 px-4 py-3">Status</th>
+            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-4 py-3">{{ t('table_date') }}</th>
+            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3">{{ t('table_items') }}</th>
+            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3">{{ t('table_sources') }}</th>
+            <th class="text-right font-medium text-slate-500 dark:text-slate-400 px-4 py-3 hidden sm:table-cell">{{ t('table_duration') }}</th>
+            <th class="text-center font-medium text-slate-500 dark:text-slate-400 px-4 py-3">{{ t('table_status') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -55,17 +55,17 @@
               {% if run.status == 'success' %}
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  OK
+                  {{ t('status_ok') }}
                 </span>
               {% elif run.status == 'running' %}
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 dark:text-blue-400">
                   <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  Running
+                  {{ t('status_running') }}
                 </span>
               {% else %}
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400">
                   <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                  Failed
+                  {{ t('status_failed') }}
                 </span>
               {% endif %}
             </td>
@@ -82,7 +82,7 @@
     {% if page > 1 %}
       <a href="/?page={{ page - 1 }}&size={{ size }}"
          class="px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-        ← Previous
+        {{ t('pagination_prev') }}
       </a>
     {% endif %}
 
@@ -102,7 +102,7 @@
     {% if page < total_pages %}
       <a href="/?page={{ page + 1 }}&size={{ size }}"
          class="px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-        Next →
+        {{ t('pagination_next') }}
       </a>
     {% endif %}
   </div>
@@ -114,8 +114,8 @@
     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
       <i data-lucide="file-text" class="w-6 h-6 text-slate-400"></i>
     </div>
-    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">No briefings yet</h3>
-    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Run your first briefing to get started.</p>
+    <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('empty_no_briefings') }}</h3>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('empty_first_run') }}</p>
     <code class="block mt-4 text-xs text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-md px-4 py-2 inline-block">
       uv run lark-brief
     </code>
@@ -128,20 +128,30 @@
 <script>
   lucide.createIcons();
 
+  // 国际化字符串（从服务端注入）
+  const I18N = {
+    generating: {{ t('index_generating') | tojson }},
+    already_running: {{ t('index_already_running') | tojson }},
+    started: {{ t('index_started') | tojson }},
+    failed_btn: {{ t('index_failed_btn') | tojson }},
+    error: {{ t('index_error') | tojson }},
+    generate: {{ t('index_generate') | tojson }},
+  };
+
   // ========== Generate 按钮 ==========
   const genBtn = document.getElementById('generate-btn');
   if (genBtn) {
     genBtn.addEventListener('click', async () => {
       genBtn.disabled = true;
-      genBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> Generating…';
+      genBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span> ' + I18N.generating;
 
       try {
         const res = await fetch('/api/generate', { method: 'POST' });
         const data = await res.json();
         if (res.status === 409) {
-          genBtn.textContent = 'Already running';
+          genBtn.textContent = I18N.already_running;
         } else {
-          genBtn.textContent = 'Started ✓';
+          genBtn.textContent = I18N.started;
           // 轮询状态直到完成
           const poll = setInterval(async () => {
             const st = await fetch('/api/generate/status');
@@ -151,13 +161,13 @@
               window.location.reload();
             } else if (sd.status === 'failed') {
               clearInterval(poll);
-              genBtn.textContent = 'Failed ✗';
+              genBtn.textContent = I18N.failed_btn;
               genBtn.disabled = false;
             }
           }, 3000);
         }
       } catch {
-        genBtn.textContent = 'Error';
+        genBtn.textContent = I18N.error;
         genBtn.disabled = false;
       }
     });
