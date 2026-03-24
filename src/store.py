@@ -1,0 +1,200 @@
+"""持久化模块：SQLite 记录运行日志，支持文件大小控制"""
+
+import logging
+import os
+import sqlite3
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# 建表 SQL
+_INIT_SQL = """
+CREATE TABLE IF NOT EXISTS run_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    total_sources INTEGER DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    fail_count INTEGER DEFAULT 0,
+    news_count INTEGER DEFAULT 0,
+    duration_sec REAL DEFAULT 0,
+    status TEXT DEFAULT 'running'
+);
+
+CREATE TABLE IF NOT EXISTS source_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL,
+    source_name TEXT NOT NULL,
+    url TEXT,
+    success INTEGER DEFAULT 0,
+    error_msg TEXT,
+    char_count INTEGER DEFAULT 0,
+    news_count INTEGER DEFAULT 0,
+    FOREIGN KEY (run_id) REFERENCES run_logs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_run_logs_date ON run_logs(run_date);
+CREATE INDEX IF NOT EXISTS idx_source_logs_run ON source_logs(run_id);
+"""
+
+
+@dataclass
+class RunStats:
+    """单次运行的统计信息"""
+
+    run_id: int
+    total_sources: int
+    success_count: int
+    fail_count: int
+    news_count: int
+    duration_sec: float
+    success_rate: float
+
+
+class Store:
+    """SQLite 日志存储，支持文件大小自动清理"""
+
+    def __init__(self, db_path: str | Path, max_size_mb: float = 50):
+        """初始化存储
+
+        Args:
+            db_path: 数据库文件路径
+            max_size_mb: 数据库文件大小上限（MB），超过后清理旧记录
+        """
+        self.db_path = Path(db_path)
+        self.max_size_bytes = int(max_size_mb * 1024 * 1024)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn: sqlite3.Connection | None = None
+        self._init_db()
+
+    def _init_db(self) -> None:
+        """初始化数据库和表结构"""
+        conn = self._get_conn()
+        conn.executescript(_INIT_SQL)
+        conn.commit()
+
+    def _get_conn(self) -> sqlite3.Connection:
+        """获取数据库连接（懒加载）"""
+        if self._conn is None:
+            self._conn = sqlite3.connect(str(self.db_path))
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA foreign_keys=ON")
+            self._conn.row_factory = sqlite3.Row
+        return self._conn
+
+    def start_run(self, run_date: str) -> int:
+        """记录一次运行开始，返回 run_id"""
+        conn = self._get_conn()
+        cursor = conn.execute(
+            "INSERT INTO run_logs (run_date, started_at, status) VALUES (?, ?, 'running')",
+            (run_date, datetime.now().isoformat()),
+        )
+        conn.commit()
+        return cursor.lastrowid or 0
+
+    def log_source(
+        self,
+        run_id: int,
+        source_name: str,
+        url: str,
+        success: bool,
+        error_msg: str = "",
+        char_count: int = 0,
+        news_count: int = 0,
+    ) -> None:
+        """记录单个资讯源的爬取结果"""
+        conn = self._get_conn()
+        conn.execute(
+            """INSERT INTO source_logs
+               (run_id, source_name, url, success, error_msg, char_count, news_count)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (run_id, source_name, url, int(success), error_msg, char_count, news_count),
+        )
+        conn.commit()
+
+    def finish_run(
+        self,
+        run_id: int,
+        total_sources: int,
+        success_count: int,
+        news_count: int,
+        start_time: float,
+        status: str = "success",
+    ) -> RunStats:
+        """完成一次运行，更新统计信息并返回"""
+        duration = time.time() - start_time
+        fail_count = total_sources - success_count
+        conn = self._get_conn()
+        conn.execute(
+            """UPDATE run_logs SET
+               finished_at=?, total_sources=?, success_count=?,
+               fail_count=?, news_count=?, duration_sec=?, status=?
+               WHERE id=?""",
+            (
+                datetime.now().isoformat(),
+                total_sources,
+                success_count,
+                fail_count,
+                news_count,
+                round(duration, 1),
+                status,
+                run_id,
+            ),
+        )
+        conn.commit()
+
+        success_rate = success_count / total_sources if total_sources > 0 else 0
+        return RunStats(
+            run_id=run_id,
+            total_sources=total_sources,
+            success_count=success_count,
+            fail_count=fail_count,
+            news_count=news_count,
+            duration_sec=round(duration, 1),
+            success_rate=success_rate,
+        )
+
+    def cleanup_if_needed(self) -> None:
+        """检查数据库文件大小，超过上限时删除最旧的记录"""
+        if not self.db_path.exists():
+            return
+        file_size = os.path.getsize(self.db_path)
+        if file_size <= self.max_size_bytes:
+            return
+
+        conn = self._get_conn()
+        # 每次删除最旧的 10% 的运行记录
+        total = conn.execute("SELECT COUNT(*) FROM run_logs").fetchone()[0]
+        if total <= 1:
+            return
+
+        delete_count = max(1, total // 10)
+        oldest_ids = conn.execute(
+            "SELECT id FROM run_logs ORDER BY id ASC LIMIT ?", (delete_count,)
+        ).fetchall()
+        ids = [row[0] for row in oldest_ids]
+        placeholders = ",".join("?" * len(ids))
+
+        # 级联删除 source_logs（FOREIGN KEY ON DELETE CASCADE）
+        conn.execute(f"DELETE FROM run_logs WHERE id IN ({placeholders})", ids)
+        conn.commit()
+
+        # 回收空间
+        conn.execute("VACUUM")
+        new_size = os.path.getsize(self.db_path)
+        logger.info(
+            "🧹 数据库清理: 删除 %d 条旧记录，文件大小 %.1fMB → %.1fMB",
+            delete_count,
+            file_size / 1024 / 1024,
+            new_size / 1024 / 1024,
+        )
+
+    def close(self) -> None:
+        """关闭数据库连接"""
+        if self._conn:
+            self._conn.close()
+            self._conn = None

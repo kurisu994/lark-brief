@@ -13,6 +13,10 @@ install:
 dev:
     uv run python -m src.main
 
+# 以定时调度模式运行
+schedule:
+    uv run python -m src.main --schedule
+
 # Lint 检查
 lint:
     uv run ruff check src/
@@ -28,6 +32,26 @@ check:
 
 # 完整检查（静态检查 + 类型检查）
 all: lint check
+
+# Docker 构建
+docker-build:
+    docker compose build
+
+# Docker 启动（定时调度模式）
+docker-up:
+    docker compose up -d
+
+# Docker 单次运行
+docker-once:
+    docker compose run --rm lark-brief --once
+
+# Docker 停止
+docker-down:
+    docker compose down
+
+# Docker 查看日志
+docker-logs:
+    docker compose logs -f --tail=50
 
 # 清理缓存
 clean:

@@ -9,6 +9,7 @@ dist/
 /docs
 wheels/
 /output
+/data
 *.egg-info
 .idea
 

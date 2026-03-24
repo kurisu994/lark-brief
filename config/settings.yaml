@@ -23,6 +23,18 @@ brief:
   max_items: 20
   min_items: 10
 
+schedule:
+  cron: "0 8 * * *"        # Cron 表达式：每天 8:00 执行
+  timezone: "Asia/Shanghai"
+
+store:
+  db_path: "data/lark-brief.db"
+  max_db_size_mb: 50        # SQLite 文件大小上限（MB）
+
+alert:
+  enabled: true
+  min_success_rate: 0.5     # 爬取成功率低于此值时推送告警
+
 pushers:
   dingtalk:
     enabled: true
