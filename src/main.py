@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from src.composer import compose_brief
 from src.crawler import crawl_sources
-from src.pusher import DingTalkPusher
+from src.pusher import DingTalkPusher, FeishuPusher
 from src.summarizer import extract_news, merge_and_rank
 
 logger = logging.getLogger(__name__)
@@ -69,16 +69,18 @@ async def generate_daily_brief() -> None:
 
     logger.info("成功爬取 %d/%d 个源", len(success_results), len(crawl_results))
 
-    # 3. LLM 单源提取
-    all_news = []
-    for result in success_results:
-        news_items = await extract_news(
+    # 3. LLM 单源提取（并行）
+    extract_tasks = [
+        extract_news(
             source_name=result.source_name,
             category=result.category,
             markdown=result.markdown,
             settings=llm_settings,
         )
-        all_news.extend(news_items)
+        for result in success_results
+    ]
+    news_per_source = await asyncio.gather(*extract_tasks)
+    all_news = [item for items in news_per_source for item in items]
 
     if not all_news:
         logger.error("所有源的 LLM 提取均失败，终止流程")
@@ -113,13 +115,20 @@ async def generate_daily_brief() -> None:
     output_file.write_text(brief_md, encoding="utf-8")
     logger.info("✅ 简报已保存: %s", output_file)
 
-    # 7. 推送到钉钉
+    # 7. 推送到各渠道
     dingtalk_cfg = pusher_settings.get("dingtalk", {})
     if dingtalk_cfg.get("enabled", False):
         pusher = DingTalkPusher(webhook_url=dingtalk_cfg.get("webhook_url"))
         await pusher.push(title="今日简报", content=brief_md)
     else:
         logger.info("钉钉推送未启用，跳过")
+
+    feishu_cfg = pusher_settings.get("feishu", {})
+    if feishu_cfg.get("enabled", False):
+        fs_pusher = FeishuPusher(webhook_url=feishu_cfg.get("webhook_url"))
+        await fs_pusher.push(title="今日简报", content=brief_md)
+    else:
+        logger.info("飞书推送未启用，跳过")
 
     logger.info("========== 云雀简报 — 生成完毕 ==========")
 

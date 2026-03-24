@@ -31,6 +31,6 @@ pushers:
     # secret 通过环境变量 D_SECRET 读取
   feishu:
     enabled: true
-    webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook/
+    webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook
     # access_token 通过环境变量 FS_ACCESS_TOKEN 读取
     # secret 通过环境变量 FS_SECRET 读取
