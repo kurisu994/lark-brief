@@ -26,10 +26,8 @@ export function AppNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            </svg>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/logo.png" alt="Lark Brief Logo" className="w-full h-full object-contain drop-shadow-md" />
           </div>
           <span className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Lark Brief</span>
         </Link>
