@@ -10,9 +10,9 @@
 - 🔀 **跨源去重** — LLM 语义去重、按重要性排序，精选 10-20 条；失败时自动降级为按重要度排序
 - 📤 **多渠道推送** — 钉钉 & 飞书自定义机器人 Webhook 推送（HMAC-SHA256 加签），简报自动美化格式
 - ⚠️ **智能告警** — 爬取全部失败或成功率低于阈值时，自动通过推送渠道发送告警
-- 🌐 **Web UI** — 前后端分离架构：Next.js + HeroUI v3 现代化仪表盘，FastAPI 纯 JSON API 后端（全文搜索、手动触发生成、统计面板）
+- 🌐 **Web UI** — 前后端分离架构：Next.js + HeroUI v3 现代化仪表盘，支持中英文双语切换与 Recharts 运行数据统计面板
 - 💾 **同日覆盖** — 同一天重复运行时自动覆盖旧记录，每天只保留一条运行日志
-- ⚙️ **配置驱动** — YAML 配置资讯源和参数，代码零硬编码
+- ⚙️ **配置驱动** — YAML 配置资讯源和参数，代码零硬编码，并支持为爬虫、LLM 和推送分别配置网络代理
 
 ## 📋 简报示例
 
@@ -95,12 +95,13 @@ lark-brief/
 │   ├── settings.yaml       # 全局配置（LLM、爬虫、输出、推送）
 │   └── sources.yaml        # 资讯源列表
 ├── src/                     # 后端（Python）
+│   ├── pipeline.py          # 核心流程编排（爬取+总结+组装+推送）
 │   ├── crawler.py           # 爬取模块
 │   ├── summarizer.py        # LLM 总结模块
 │   ├── composer.py          # 简报组装模块
 │   ├── pusher.py            # 推送模块
 │   ├── store.py             # SQLite 持久化
-│   ├── main.py              # 入口 + CLI
+│   ├── main.py              # CLI 入口
 │   └── web/                  # 纯 JSON API 模块
 │       ├── __init__.py       # FastAPI app 工厂 + CORS
 │       ├── routes.py         # RESTful API 路由
@@ -109,6 +110,7 @@ lark-brief/
 │   ├── app/                  # 页面路由
 │   ├── components/           # 共享组件
 │   ├── lib/api.ts            # API 服务层
+│   ├── lib/i18n.tsx          # 国际化支持层
 │   ├── Dockerfile            # 前端 Docker 镜像（Node Alpine）
 │   └── public/favicon.ico    # 站点图标
 ├── output/                   # 简报输出目录
@@ -154,9 +156,10 @@ lark-brief/
 - [x] LLM 提取并行化（asyncio.gather）+ 降级容错
 - [x] 爬取稳定性优化（三阶段爬取 + 重试 + 超时配置）
 - [x] 爬取成功率告警 + 同日覆盖
+- [x] 新增代理配置、拆分执行管线 (pipeline.py)
 - [x] cron 定时调度 + Docker 部署
-- [x] Web UI — 简报列表 / 详情 / 统计面板 / 源健康度
-- [x] Web UI — 手动生成 / 全文搜索
+- [x] Web UI — 简报列表 / 详情 / 统计图表 (Recharts) / 源健康度
+- [x] Web UI — 手动生成 / 全文搜索 / 国际化 (i18n)
 - [x] 前后端分离 — Next.js + HeroUI v3 前端 + FastAPI 纯 API 后端
 
 </details>

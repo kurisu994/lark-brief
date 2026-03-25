@@ -10,26 +10,28 @@
 
 ```
 # 后端（Python）
-src/main.py          # 入口，串联完整异步流程 (asyncio)，支持 --web / --schedule / 默认单次 + 成功率告警
+src/main.py          # CLI 入口，支持 --web / --schedule / 默认单次模式
+src/pipeline.py      # 核心管线 — 串联完整异步流程 (爬取 → 去重 → 总结 → 发送)，包含网络代理支持
 src/crawler.py       # 爬取模块 — crawl4ai 三阶段爬取（批量→特殊源→重试）+ PruningContentFilter 去噪
-src/summarizer.py    # 总结模块 — 火山引擎 LLM 并行提取摘要 + 跨源去重排序
+src/summarizer.py    # 总结模块 — 火山引擎 LLM 并行提取摘要 + 基于历史数据库的跨源去重排序
 src/composer.py      # 组装模块 — 格式化简报 MD（含 borax 农历日期）
 src/pusher.py        # 推送模块 — 钉钉 & 飞书机器人 Webhook（HMAC-SHA256 加签）+ 简报美化格式
-src/store.py         # 持久化模块 — SQLite 运行日志（同日覆盖）+ 文件大小自动清理
+src/store.py         # 持久化模块 — SQLite 运行日志（同日覆盖）、新闻历史表 + 文件大小自动清理
 src/web/             # 纯 JSON API 模块（FastAPI + CORS）
   __init__.py        # create_app() 工厂函数 + CORS 中间件
-  routes.py          # RESTful API 路由（/api/briefs, /api/stats, /api/generate, /api/search）
+  routes.py          # RESTful API 路由（/api/briefs, /api/stats, /api/generate, /api/search），涉及后台任务锁
   deps.py            # 依赖注入（Store、OutputDir）
 
 # 前端（TypeScript / Next.js）
 frontend/            # Next.js App Router + HeroUI v3 组件库
   app/               # 页面路由
-    page.tsx          # 首页：简报列表 + 生成按钮
+    page.tsx          # 首页：简报列表 + 手动生成卡片及 KPI
     brief/[date]/     # 简报详情页（Markdown 渲染 + 运行信息侧栏）
-    stats/            # 统计面板（KPI + 趋势 + 源健康度）
-    search/           # 全文搜索
+    stats/            # 统计面板（结合 Recharts 展现成功率/新闻数趋势及源健康度）
+    search/           # 全文搜索页面
   components/        # 共享组件（导航栏等）
   lib/api.ts         # API 服务层（类型定义 + fetch 封装）
+  lib/i18n.tsx       # 国际化支持层（中英双语切换）
   public/favicon.ico # 站点图标
 
 # 配置与数据
@@ -46,6 +48,7 @@ data/                # SQLite 数据库（lark-brief.db）
 - **前后端分离**: 后端仅提供 JSON API（`/api/*`），前端 Next.js 通过 `rewrites` 反向代理 API 请求
 - **异步优先**: 爬取和 LLM 调用均为 `async`，LLM 提取使用 `asyncio.gather` 并行化，入口通过 `asyncio.run()` 驱动
 - **数据类传递**: 模块间通过 `dataclass` 传递数据（`CrawlResult`、`NewsItem`），不使用裸 dict
+- **网络代理控制**: 配置拆分了爬虫、LLM、推送三端的独立代理开关，以适应不同网络环境
 - **LLM 协议**: 使用 `openai` SDK 连接火山引擎（只替换 `base_url`），API Key 通过环境变量 `ARK_API_KEY` 读取
 - **配置与代码分离**: 所有可变参数放 YAML，代码中不硬编码资讯源或模型 ID
 - **同日覆盖**: `store.start_run()` 同一天重复执行时先 DELETE 旧记录再 INSERT，确保每天只保留一条运行记录
@@ -82,6 +85,7 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 | `uvicorn` | ASGI 服务器（运行 FastAPI 应用） |
 | `apscheduler` | 定时调度（CronTrigger，`--schedule` 模式） |
 | `@heroui/react` | 前端 UI 组件库（HeroUI v3，Tailwind CSS v4） |
+| `recharts` | 前端统计面板的可视化图表库（柱状图、折线图等） |
 | `next` | 前端框架（App Router，standalone 部署） |
 | `react-markdown` | 简报 Markdown 渲染 |
 
