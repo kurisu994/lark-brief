@@ -1,8 +1,11 @@
 services:
-  lark-brief:
+  # 后端服务（FastAPI API + 定时调度，合并为单进程）
+  backend:
     build: .
-    container_name: lark-brief
-    restart: unless-stopped
+    container_name: lark-brief-backend
+    command: ["--web"]
+    ports:
+      - "8080:8080"
     environment:
       - ARK_API_KEY=${ARK_API_KEY}
       - D_SECRET=${D_SECRET}
@@ -13,29 +16,19 @@ services:
       - ./config:/app/config:ro
       - ./output:/app/output
       - lark-brief-data:/app/data
-    # 默认定时调度模式；单次运行可用:
-    # docker compose run --rm lark-brief --once
-    # command: ["--once"]
+    restart: unless-stopped
 
+  # 前端（Next.js + HeroUI）
   web:
-    build: .
+    build: ./frontend
     container_name: lark-brief-web
-    command: ["--web"]
     ports:
-      - "9090:8080"
+      - "9090:3000"
     environment:
-      - ARK_API_KEY=${ARK_API_KEY}
-      - D_SECRET=${D_SECRET}
-      - D_ACCESS_TOKEN=${D_ACCESS_TOKEN}
-      - FS_SECRET=${FS_SECRET}
-      - FS_ACCESS_TOKEN=${FS_ACCESS_TOKEN}
-    volumes:
-      - ./config:/app/config:ro
-      - ./output:/app/output:ro
-      - lark-brief-data:/app/data
+      - BACKEND_URL=http://backend:8080
     restart: unless-stopped
     depends_on:
-      - lark-brief
+      - backend
 
 volumes:
   lark-brief-data:

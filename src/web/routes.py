@@ -1,18 +1,15 @@
-"""路由注册：页面路由（SSR）+ 数据 API（JSON）"""
+"""路由注册：纯 JSON API（供 Next.js 前端调用）"""
 
 import asyncio
-import math
 import re
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 
 from src.store import Store
 
-from .deps import get_output_dir, get_store, get_templates
-from .i18n import DEFAULT_LOCALE, SUPPORTED_LOCALES
+from .deps import get_output_dir, get_store
 
 # 简报生成任务锁，防止重复触发
 _generate_lock = asyncio.Lock()
@@ -20,75 +17,9 @@ _generate_task: asyncio.Task[None] | None = None
 
 
 def register_routes(app: FastAPI) -> None:
-    """注册所有页面路由和 API 路由"""
+    """注册所有 API 路由"""
 
-    # ========== 页面路由（SSR） ==========
-
-    @app.get("/", response_class=HTMLResponse)
-    async def index_page(
-        request: Request,
-        page: int = 1,
-        size: int = 20,
-        store: Store = Depends(get_store),
-        templates: Jinja2Templates = Depends(get_templates),
-    ) -> HTMLResponse:
-        """简报列表页"""
-        offset = (page - 1) * size
-        runs = store.list_runs(limit=size, offset=offset)
-        total = store.count_runs()
-        total_pages = max(1, math.ceil(total / size))
-
-        return templates.TemplateResponse(
-            request,
-            "index.html",
-            {
-                "runs": runs,
-                "page": page,
-                "size": size,
-                "total": total,
-                "total_pages": total_pages,
-            },
-        )
-
-    @app.get("/brief/{date}", response_class=HTMLResponse)
-    async def brief_page(
-        request: Request,
-        date: str,
-        store: Store = Depends(get_store),
-        templates: Jinja2Templates = Depends(get_templates),
-        output_dir: Path = Depends(get_output_dir),
-    ) -> HTMLResponse:
-        """简报详情页"""
-        run = store.get_run_by_date(date)
-        sources: list[dict] = []
-        brief_md = ""
-
-        if run:
-            sources = store.get_source_logs(run["id"])
-
-        # 读取简报 MD 文件
-        md_file = output_dir / f"{date}.md"
-        if md_file.exists():
-            brief_md = md_file.read_text(encoding="utf-8")
-
-        # 日期不存在且无文件 → 404
-        if not run and not brief_md:
-            return templates.TemplateResponse(
-                request, "404.html", status_code=404
-            )
-
-        return templates.TemplateResponse(
-            request,
-            "brief.html",
-            {
-                "date": date,
-                "run": run,
-                "sources": sources,
-                "brief_md": brief_md,
-            },
-        )
-
-    # ========== 数据 API（JSON） ==========
+    # ========== 简报列表 ==========
 
     @app.get("/api/briefs")
     async def api_list_briefs(
@@ -120,6 +51,8 @@ def register_routes(app: FastAPI) -> None:
             "size": size,
         })
 
+    # ========== 简报详情 ==========
+
     @app.get("/api/briefs/{date}")
     async def api_brief_detail(
         date: str,
@@ -147,6 +80,8 @@ def register_routes(app: FastAPI) -> None:
             "brief_md": brief_md,
         })
 
+    # ========== 源爬取详情 ==========
+
     @app.get("/api/runs/{run_id}/sources")
     async def api_run_sources(
         run_id: int,
@@ -156,40 +91,7 @@ def register_routes(app: FastAPI) -> None:
         sources = store.get_source_logs(run_id)
         return JSONResponse({"sources": sources})
 
-    # ========== 统计页面（Phase 2） ==========
-
-    @app.get("/stats", response_class=HTMLResponse)
-    async def stats_page(
-        request: Request,
-        days: int = 30,
-        health_days: int = 7,
-        store: Store = Depends(get_store),
-        templates: Jinja2Templates = Depends(get_templates),
-    ) -> HTMLResponse:
-        """统计面板页"""
-        overview = store.get_stats_overview()
-        trend = store.get_success_trend(days=days)
-        sources_health = store.get_source_health(days=health_days)
-
-        # 为每个源附加近期逐日状态
-        for src in sources_health:
-            src["recent"] = store.get_source_recent_status(
-                src["source_name"], days=health_days
-            )
-
-        return templates.TemplateResponse(
-            request,
-            "stats.html",
-            {
-                "overview": overview,
-                "trend": trend,
-                "sources_health": sources_health,
-                "days": days,
-                "health_days": health_days,
-            },
-        )
-
-    # ========== 统计 API（Phase 2） ==========
+    # ========== 统计 API ==========
 
     @app.get("/api/stats/overview")
     async def api_stats_overview(
@@ -219,10 +121,10 @@ def register_routes(app: FastAPI) -> None:
             )
         return JSONResponse({"days": days, "data": health})
 
-    # ========== 手动触发生成（Phase 3） ==========
+    # ========== 手动触发生成 ==========
 
     @app.post("/api/generate")
-    async def api_trigger_generate(request: Request) -> JSONResponse:
+    async def api_trigger_generate() -> JSONResponse:
         """手动触发简报生成（后台异步执行）"""
         global _generate_task
 
@@ -234,7 +136,7 @@ def register_routes(app: FastAPI) -> None:
                     status_code=409,
                 )
 
-            from src.main import generate_daily_brief
+            from src.pipeline import generate_daily_brief
 
             _generate_task = asyncio.create_task(generate_daily_brief())
 
@@ -260,7 +162,7 @@ def register_routes(app: FastAPI) -> None:
             )
         return JSONResponse({"status": "completed", "message": "Generation completed successfully."})
 
-    # ========== 全文搜索（Phase 3） ==========
+    # ========== 全文搜索 ==========
 
     def _search_briefs(output_dir: Path, query: str, limit: int = 50) -> list[dict]:
         """在 output/*.md 文件中搜索关键词，返回匹配结果"""
@@ -271,13 +173,12 @@ def register_routes(app: FastAPI) -> None:
         pattern = re.compile(re.escape(query), re.IGNORECASE)
         md_files = sorted(output_dir.glob("*.md"), reverse=True)
 
-        for md_file in md_files[:200]:  # 最多扫描 200 个文件
+        for md_file in md_files[:200]:
             content = md_file.read_text(encoding="utf-8")
             matches = list(pattern.finditer(content))
             if not matches:
                 continue
 
-            # 提取第一个匹配的上下文片段
             first = matches[0]
             start = max(0, first.start() - 60)
             end = min(len(content), first.end() + 60)
@@ -306,50 +207,3 @@ def register_routes(app: FastAPI) -> None:
         """全文搜索 API"""
         results = _search_briefs(output_dir, q)
         return JSONResponse({"query": q, "total": len(results), "results": results})
-
-    @app.get("/search", response_class=HTMLResponse)
-    async def search_page(
-        request: Request,
-        q: str = "",
-        templates: Jinja2Templates = Depends(get_templates),
-        output_dir: Path = Depends(get_output_dir),
-    ) -> HTMLResponse:
-        """搜索结果页"""
-        results = _search_briefs(output_dir, q) if q else []
-        return templates.TemplateResponse(
-            request,
-            "search.html",
-            {"query": q, "results": results},
-        )
-
-    # ========== 语言切换（i18n） ==========
-
-    @app.get("/api/lang/{locale}")
-    async def switch_language(request: Request, locale: str) -> RedirectResponse:
-        """切换界面语言，通过 Cookie 持久化"""
-        if locale not in SUPPORTED_LOCALES:
-            locale = DEFAULT_LOCALE
-        referer = request.headers.get("referer", "/")
-        response = RedirectResponse(url=referer, status_code=302)
-        response.set_cookie(
-            "lang", locale, max_age=365 * 24 * 3600, httponly=True, samesite="lax"
-        )
-        return response
-
-    # ========== 错误处理 ==========
-
-    @app.exception_handler(404)
-    async def not_found_handler(request: Request, _exc: Exception) -> HTMLResponse:
-        """404 页面"""
-        templates: Jinja2Templates = request.app.state.templates
-        return templates.TemplateResponse(
-            request, "404.html", status_code=404
-        )
-
-    @app.exception_handler(500)
-    async def server_error_handler(request: Request, _exc: Exception) -> HTMLResponse:
-        """500 页面"""
-        templates: Jinja2Templates = request.app.state.templates
-        return templates.TemplateResponse(
-            request, "500.html", status_code=500
-        )

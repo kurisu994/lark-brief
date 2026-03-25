@@ -5,21 +5,23 @@
 default:
     @just --list
 
-# 安装依赖
+# ──────────────── 后端 ────────────────
+
+# 安装后端依赖
 install:
     uv sync
 
-# 启动开发（运行主程序）
-dev:
+# 单次生成简报
+run:
     uv run python -m src.main
 
-# 以定时调度模式运行
-schedule:
-    uv run python -m src.main --schedule
-
-# 启动 Web UI（默认端口 8080）
+# 启动 Web API + 定时调度（默认端口 8080）
 web port="8080":
     uv run lark-brief --web --port {{ port }}
+
+# 以纯定时调度模式运行（无 Web）
+schedule:
+    uv run python -m src.main --schedule
 
 # Lint 检查
 lint:
@@ -37,27 +39,49 @@ check:
 # 完整检查（静态检查 + 类型检查）
 all: lint check
 
-# Docker 构建
+# ──────────────── 前端 ────────────────
+
+# 安装前端依赖
+fe-install:
+    cd frontend && pnpm install
+
+# 启动前端开发服务器
+fe-dev:
+    cd frontend && pnpm dev
+
+# 构建前端
+fe-build:
+    cd frontend && pnpm build
+
+# ──────────────── Docker ────────────────
+
+# Docker 构建所有镜像
 docker-build:
     docker compose build
 
-# Docker 启动（定时调度模式）
+# Docker 启动（后端 + 前端）
 docker-up:
     docker compose up -d
 
-# Docker 单次运行
+# Docker 单次运行简报生成
 docker-once:
-    docker compose run --rm lark-brief --once
+    docker compose run --rm backend python -m src.main
 
 # Docker 停止
 docker-down:
     docker compose down
 
 # Docker 查看日志
-docker-logs:
-    docker compose logs -f --tail=50
+docker-logs service="":
+    docker compose logs -f --tail=50 {{ service }}
+
+# ──────────────── 清理 ────────────────
 
 # 清理缓存
 clean:
     rm -rf .mypy_cache .ruff_cache
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+# 清理前端构建产物
+fe-clean:
+    rm -rf frontend/.next frontend/node_modules

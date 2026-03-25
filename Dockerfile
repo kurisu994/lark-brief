@@ -1,6 +1,9 @@
 # 多阶段构建：安装依赖 + Playwright 浏览器
 FROM python:3.14-slim AS base
 
+# 使用阿里云 Debian 镜像加速
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources
+
 # 系统依赖（Playwright Chromium 运行所需）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Playwright 浏览器运行时依赖
