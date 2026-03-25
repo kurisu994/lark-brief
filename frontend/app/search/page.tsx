@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Card, Input, Chip, Spinner } from "@heroui/react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { searchBriefs, type SearchResult } from "@/lib/api";
@@ -35,56 +34,61 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("search.title")}</h1>
+    <div className="space-y-6 animate-fade-in">
+      <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t("search.title")}</h1>
 
-      <Card>
-        <Card.Content className="p-4">
-          <Input
+      {/* 搜索框 */}
+      <div className="card">
+        <div className="flex gap-3">
+          <input
             type="search"
             placeholder={t("search.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full"
+            className="input-dark flex-1"
           />
-        </Card.Content>
-      </Card>
+          <button className="btn-primary" onClick={handleSearch} disabled={loading}>
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
 
+      {/* 搜索结果 */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <Spinner size="lg" />
+          <div className="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
         </div>
       ) : searched ? (
         results.length > 0 ? (
           <div className="space-y-3">
-            <p className="text-sm text-foreground-secondary">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
               {t("search.result_count", { total, query })}
             </p>
             {results.map((r) => (
               <Link key={r.date} href={`/brief/${r.date}`}>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                  <Card.Content className="px-6 py-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">{r.date}</span>
-                      <Chip size="sm" color="accent">
-                        {t("search.match_count", { count: r.match_count })}
-                      </Chip>
-                    </div>
-                    <p className="text-sm text-foreground-secondary line-clamp-2">
-                      {r.snippet}
-                    </p>
-                  </Card.Content>
-                </Card>
+                <div className="card hover:border-purple-500/20 transition-all cursor-pointer group mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold group-hover:text-purple-400 transition-colors" style={{ color: 'var(--text-primary)' }}>{r.date}</span>
+                    <span className="badge badge-purple">
+                      {t("search.match_count", { count: r.match_count })}
+                    </span>
+                  </div>
+                  <p className="text-sm line-clamp-2" style={{ color: 'var(--text-muted)' }}>{r.snippet}</p>
+                </div>
               </Link>
             ))}
           </div>
         ) : (
-          <Card>
-            <Card.Content className="text-center py-12 text-foreground-secondary">
-              {t("search.no_result", { query })}
-            </Card.Content>
-          </Card>
+          <div className="card text-center py-12" style={{ color: 'var(--text-muted)' }}>
+            {t("search.no_result", { query })}
+          </div>
         )
       ) : null}
     </div>

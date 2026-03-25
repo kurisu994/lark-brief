@@ -15,11 +15,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-background font-sans">
+    <html lang="zh-CN" className="dark h-full antialiased" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-full flex flex-col font-sans" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
         <Providers>
           <AppNavbar />
-          <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6">
+          <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
             {children}
           </main>
         </Providers>

@@ -1,29 +1,267 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-body {
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+/* ── 主题变量 ── */
+:root {
+  --bg-base: #f8f9fc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f3f9;
+  --bg-input: #f1f3f9;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.04);
+  --text-primary: #111827;
+  --text-secondary: rgba(17, 24, 39, 0.55);
+  --text-muted: rgba(17, 24, 39, 0.35);
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-glow: rgba(124, 58, 237, 0.15);
+  --success: #16a34a;
+  --success-bg: rgba(22, 163, 74, 0.08);
+  --danger: #dc2626;
+  --danger-bg: rgba(220, 38, 38, 0.08);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.08);
+  --purple-bg: rgba(124, 58, 237, 0.08);
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --chart-text: rgba(0, 0, 0, 0.4);
 }
 
-/* Markdown 渲染样式 */
-.prose h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.75rem; }
-.prose h2 { font-size: 1.25rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
-.prose h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
-.prose p { margin: 0.5rem 0; line-height: 1.75; }
-.prose ul, .prose ol { padding-left: 1.5rem; margin: 0.5rem 0; }
-.prose li { margin: 0.25rem 0; line-height: 1.75; }
-.prose a { color: var(--color-primary); text-decoration: underline; }
-.prose a:hover { opacity: 0.8; }
-.prose strong { font-weight: 600; }
-.prose code {
-  background: var(--color-surface-secondary);
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
+.dark {
+  --bg-base: #0b0d14;
+  --bg-card: #12141f;
+  --bg-card-hover: #1a1d29;
+  --bg-input: #0b0d14;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.04);
+  --text-primary: #e2e8f0;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-glow: rgba(124, 58, 237, 0.3);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --purple-bg: rgba(167, 139, 250, 0.1);
+  --chart-grid: rgba(255, 255, 255, 0.04);
+  --chart-text: rgba(255, 255, 255, 0.35);
+}
+
+/* ── 全局基础 ── */
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* ── 卡片 ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+.card-sm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+/* ── Tab 切换 ── */
+.tab-group {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--bg-card);
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+}
+.tab-item {
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.tab-item:hover {
+  color: var(--text-secondary);
+}
+.tab-item-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── KPI 卡片指标 ── */
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.kpi-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+.kpi-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+.kpi-change-up { color: var(--success); background: var(--success-bg); }
+.kpi-change-down { color: var(--danger); background: var(--danger-bg); }
+
+/* ── 按钮 ── */
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-ghost:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.btn-ghost:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── 表格 ── */
+.table-dark {
+  width: 100%;
   font-size: 0.875rem;
 }
-.prose blockquote {
-  border-left: 3px solid var(--color-primary);
-  padding-left: 1rem;
-  margin: 0.5rem 0;
-  color: var(--color-foreground-secondary);
+.table-dark th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
 }
+.table-dark td {
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+.table-dark tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+/* ── 状态徽章 ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+}
+.badge-success { color: var(--success); background: var(--success-bg); }
+.badge-danger { color: var(--danger); background: var(--danger-bg); }
+.badge-warning { color: var(--warning); background: var(--warning-bg); }
+.badge-purple { color: #a78bfa; background: var(--purple-bg); }
+
+/* ── 状态指示灯 ── */
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.dot-success { background: var(--success); box-shadow: 0 0 4px var(--success-bg); }
+.dot-danger { background: var(--danger); box-shadow: 0 0 4px var(--danger-bg); }
+.dot-empty { background: var(--border); }
+
+/* ── 输入框 ── */
+.input-dark {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-dark::placeholder { color: var(--text-muted); }
+.input-dark:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* ── 动画 ── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in-up 0.35s ease-out; }
+
+/* ── Markdown 简报渲染 ── */
+.prose { color: var(--text-secondary); line-height: 1.85; }
+.prose h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--text-primary); }
+.prose h2 {
+  font-size: 1.2rem; font-weight: 600; margin: 1.5rem 0 0.5rem;
+  color: var(--text-primary); padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+}
+.prose h3 { font-size: 1.05rem; font-weight: 600; margin: 1rem 0 0.4rem; color: var(--text-primary); }
+.prose p { margin: 0.5rem 0; }
+.prose ul, .prose ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+.prose ol { list-style-type: decimal; }
+.prose ul { list-style-type: disc; }
+.prose li { margin: 0.3rem 0; line-height: 1.85; }
+.prose li::marker { color: var(--accent); }
+.prose a {
+  color: #a78bfa; text-decoration: none;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.3); transition: all 0.15s;
+}
+.prose a:hover { color: #c4b5fd; border-bottom-color: #c4b5fd; }
+.prose strong { font-weight: 600; color: var(--text-primary); }
+.prose code {
+  background: var(--bg-card-hover); padding: 0.15rem 0.4rem;
+  border-radius: 4px; font-size: 0.85rem; color: #e879f9;
+}
+.prose blockquote {
+  border-left: 3px solid var(--accent); padding: 0.5rem 1rem;
+  margin: 0.75rem 0; color: var(--text-muted);
+  background: var(--purple-bg); border-radius: 0 0.5rem 0.5rem 0;
+}
+.prose hr { border-color: var(--border); margin: 1.25rem 0; }
+
+/* ── Recharts 主题覆写 ── */
+.recharts-cartesian-grid line { stroke: var(--chart-grid) !important; }
+.recharts-text { fill: var(--chart-text) !important; font-size: 0.75rem !important; }
+
+/* ── 自定义滚动条 ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
