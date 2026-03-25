@@ -20,7 +20,7 @@
   <!-- KPI 卡片 -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Total Runs -->
-    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+    <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_total_runs') }}</span>
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Avg Success Rate -->
-    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+    <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="check-circle" class="w-4 h-4 text-slate-400"></i>
         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_avg_success_rate') }}</span>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Avg Duration -->
-    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+    <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_avg_duration') }}</span>
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Total Configured Sources -->
-    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+    <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-2">
         <i data-lucide="database" class="w-4 h-4 text-slate-400"></i>
         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_configured_sources') }}</span>
@@ -78,7 +78,7 @@
 
   {% if trend %}
   <!-- 成功率趋势图 -->
-  <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+  <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
     <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
       {{ t('stats_success_trend', days=days) }}
     </h2>
@@ -90,7 +90,7 @@
 
   {% if sources_health %}
   <!-- 源健康度表 -->
-  <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+  <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
       <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
         {{ t('stats_source_health', days=health_days) }}
@@ -140,8 +140,8 @@
 
   {% if not trend and not sources_health %}
   <!-- 空状态 -->
-  <div class="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-12 text-center">
-    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
+  <div class="bg-white dark:bg-slate-900 shadow-sm border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-12 text-center">
+    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 mb-4">
       <i data-lucide="bar-chart-3" class="w-6 h-6 text-slate-400"></i>
     </div>
     <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('stats_no_data') }}</h3>

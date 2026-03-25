@@ -45,14 +45,14 @@
     <!-- 左栏：简报内容 -->
     <div class="flex-1 min-w-0">
       {% if brief_md %}
-      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-6">
+      <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8">
         <div id="brief-content" class="brief-content text-slate-700 dark:text-slate-300">
           <!-- marked.js 将在这里渲染 -->
         </div>
       </div>
       {% else %}
-      <div class="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-12 text-center">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
+      <div class="bg-white dark:bg-slate-900 shadow-sm border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-12 text-center">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 mb-4">
           <i data-lucide="file-x" class="w-6 h-6 text-slate-400"></i>
         </div>
         <h3 class="text-base font-medium text-slate-700 dark:text-slate-300">{{ t('brief_no_content') }}</h3>
@@ -66,7 +66,7 @@
     <div class="w-full lg:w-72 shrink-0 space-y-4">
 
       <!-- Run Summary 卡片 -->
-      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+      <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{{ t('brief_run_summary') }}</h2>
         <dl class="space-y-2.5 text-sm">
           <div class="flex justify-between">
@@ -115,7 +115,7 @@
 
       <!-- Source Details 卡片 -->
       {% if sources %}
-      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+      <div class="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-5">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{{ t('brief_source_details') }}</h2>
         <ul class="space-y-1.5 text-sm max-h-80 overflow-y-auto">
           {% for src in sources %}
