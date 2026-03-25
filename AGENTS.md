@@ -19,6 +19,7 @@ src/web/             # Web UI 模块 — FastAPI + Jinja2 + Tailwind（欧美极
   routes.py          # 页面路由（SSR）+ 数据 API（JSON）+ 生成/搜索/语言切换 API
   deps.py            # 依赖注入（Store、Templates、OutputDir）
   static/style.css   # 自定义 CSS（Markdown 渲染、Dark Mode）
+  static/favicon.ico # 站点图标（云雀极简 Logo）
   locales/           # 翻译文件（en.json、zh.json）
   templates/         # Jinja2 模板（base/index/brief/stats/search/404/500）
 config/settings.yaml # 全局配置：LLM 端点、爬虫参数、输出路径、推送渠道
@@ -37,6 +38,7 @@ data/                # SQLite 数据库（lark-brief.db）
 - **配置与代码分离**: 所有可变参数放 YAML，代码中不硬编码资讯源或模型 ID
 - **简报格式固定**: 输出格式见 `docs/implementation-plan.md` §二，编号列表，全中文，10-20 条
 - **同日覆盖**: `store.start_run()` 同一天重复执行时先 DELETE 旧记录再 INSERT，确保每天只保留一条运行记录
+- **定时调度**: 使用 `AsyncIOScheduler` 在标准 `asyncio` 协程内运行，避免 `no running event loop` 问题
 - **告警机制**: 爬取全部失败或成功率低于阈值时，通过已启用的推送渠道发送告警消息
 - **LLM 降级**: 去重排序 LLM 调用失败时，自动降级为按 importance 排序取 Top N
 
@@ -82,8 +84,6 @@ export ARK_API_KEY="your-volcano-engine-api-key"
 
 ## 注意事项
 
-- 详细需求和 LLM Prompt 设计见 `docs/implementation-plan.md`
-- Web UI 设计方案见 `docs/web-ui-design.md`
 - 根目录 `main.py` 是占位文件，实际入口为 `src/main.py`
 - 钉钉推送需配置环境变量：`D_ACCESS_TOKEN`、`D_SECRET`（见 `.env`）
 - 飞书推送需配置环境变量：`FS_ACCESS_TOKEN`、`FS_SECRET`（见 `.env`）
