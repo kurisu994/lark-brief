@@ -4,8 +4,8 @@ services:
     build: .
     container_name: lark-brief-backend
     command: ["--web"]
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
       - ARK_API_KEY=${ARK_API_KEY}
       - D_SECRET=${D_SECRET}
