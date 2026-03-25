@@ -89,7 +89,12 @@
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500 dark:text-slate-400">{{ t('table_sources') }}</dt>
-            <dd class="font-medium">{{ run.success_count }} / {{ run.total_sources }}</dd>
+            <dd class="font-medium">
+              {{ run.success_count }} / {{ run.total_sources }}
+              {% if run.total_configured %}
+              <span class="text-slate-400 dark:text-slate-500 text-xs">({{ t('brief_configured', count=run.total_configured) }})</span>
+              {% endif %}
+            </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500 dark:text-slate-400">{{ t('table_items') }}</dt>

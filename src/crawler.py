@@ -1,6 +1,8 @@
 """爬取模块：调用 crawl4ai 并发爬取资讯源，使用内容过滤去噪"""
 
 import logging
+import random
+from collections import defaultdict
 from dataclasses import dataclass
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
@@ -63,6 +65,57 @@ def _extract_content(raw: RawCrawlResult, source: dict) -> CrawlResult:
             source_name=name, category=category,
             url=url, markdown="", success=False, error=str(e),
         )
+
+
+def select_sources(sources: list[dict], select_count: int = 0) -> list[dict]:
+    """随机选取资讯源，保证尽可能覆盖每个 category
+
+    Args:
+        sources: 所有启用的资讯源列表
+        select_count: 选取数量，0 表示全部选取
+
+    Returns:
+        选中的资讯源列表
+    """
+    enabled = [s for s in sources if s.get("enabled", True)]
+    if select_count <= 0 or select_count >= len(enabled):
+        return enabled
+
+    # 按 category 分组
+    by_category: dict[str, list[dict]] = defaultdict(list)
+    for s in enabled:
+        by_category[s.get("category", "未分类")].append(s)
+
+    selected: list[dict] = []
+    categories = list(by_category.keys())
+
+    if len(categories) <= select_count:
+        # category 数不超过名额：每个 category 至少选 1 个
+        for cat in categories:
+            chosen = random.choice(by_category[cat])
+            selected.append(chosen)
+
+        # 剩余名额从未选中的源中随机补充
+        remaining = select_count - len(selected)
+        if remaining > 0:
+            selected_set = {id(s) for s in selected}
+            pool = [s for s in enabled if id(s) not in selected_set]
+            if pool:
+                extra = random.sample(pool, min(remaining, len(pool)))
+                selected.extend(extra)
+    else:
+        # category 数超过名额：随机选 select_count 个 category，各取 1 个
+        chosen_cats = random.sample(categories, select_count)
+        for cat in chosen_cats:
+            selected.append(random.choice(by_category[cat]))
+
+    random.shuffle(selected)
+    logger.info(
+        "选源: 从 %d 个源中选取 %d 个，覆盖 %d 个分类",
+        len(enabled), len(selected),
+        len({s.get("category") for s in selected}),
+    )
+    return selected
 
 
 async def crawl_sources(

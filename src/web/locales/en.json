@@ -39,6 +39,7 @@
   "brief_source_details": "Source Details",
   "brief_no_content": "Briefing content not available",
   "brief_no_content_desc": "The markdown file for this date was not found.",
+  "brief_configured": "{count} configured",
 
   "stats_title": "Dashboard",
   "stats_subtitle": "Overview of briefing generation performance",
@@ -53,6 +54,10 @@
   "stats_no_data": "No data yet",
   "stats_no_data_desc": "Statistics will appear after your first briefing run.",
   "stats_chart_label": "Success Rate (%)",
+  "stats_configured_sources": "Configured Sources",
+  "stats_dot_success": "Success",
+  "stats_dot_failed": "Failed",
+  "stats_dot_skipped": "Not selected",
 
   "search_title": "Search",
   "search_placeholder": "Search briefings…",

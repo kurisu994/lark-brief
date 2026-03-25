@@ -1,30 +1,60 @@
 sources:
+  # ===== 开发技术 =====
   - name: InfoQ 中文
     url: https://www.infoq.cn/news
     category: 开发技术
     enabled: true
-    wait_for: ".news-list"  # SPA 页面，等待新闻列表渲染
+    wait_for: ".news-list"
+
+  - name: Dev.to
+    url: https://dev.to
+    category: 开发技术
+    enabled: true
 
   - name: Hacker News
     url: https://news.ycombinator.com
-    category: 全球开发者
+    category: 开发技术
     enabled: true
 
+  # ===== AI/开源 =====
   - name: Hugging Face Blog
     url: https://huggingface.co/blog
     category: AI/开源
     enabled: true
 
+  - name: OpenAI Blog
+    url: https://openai.com/blog
+    category: AI/开源
+    enabled: true
+
+  # ===== 工程工具链 =====
   - name: GitHub Blog Engineering
     url: https://github.blog/engineering/
     category: 工程工具链
     enabled: true
 
+  - name: Stack Overflow Blog
+    url: https://stackoverflow.blog
+    category: 工程工具链
+    enabled: true
+
+  # ===== 商业科技 =====
   - name: 36氪快讯
     url: https://36kr.com/newsflashes
     category: 商业科技
     enabled: true
 
+  - name: 虎嗅
+    url: https://www.huxiu.com
+    category: 商业科技
+    enabled: true
+
+  - name: 钛媒体
+    url: https://www.tmtpost.com
+    category: 商业科技
+    enabled: true
+
+  # ===== 海外科技 =====
   - name: Reuters Technology
     url: https://www.reuters.com/technology/
     category: 海外科技
@@ -42,14 +72,64 @@ sources:
 
   - name: Ars Technica
     url: https://arstechnica.com
-    category: 技术深度
+    category: 海外科技
     enabled: true
 
+  - name: Wired
+    url: https://www.wired.com
+    category: 海外科技
+    enabled: true
+
+  # ===== AI产业 =====
   - name: VentureBeat AI
     url: https://venturebeat.com/ai/
     category: AI产业
     enabled: true
 
+  - name: 雷峰网
+    url: https://www.leiphone.com
+    category: AI产业
+    enabled: true
+
+  - name: MIT Technology Review
+    url: https://www.technologyreview.com
+    category: AI产业
+    enabled: true
+
+  # ===== 网络安全 =====
+  - name: FreeBuf
+    url: https://www.freebuf.com
+    category: 网络安全
+    enabled: true
+
+  - name: The Hacker News
+    url: https://thehackernews.com
+    category: 网络安全
+    enabled: true
+
+  # ===== 财经金融 =====
+  - name: 华尔街见闻
+    url: https://wallstreetcn.com
+    category: 财经金融
+    enabled: true
+
+  - name: 第一财经
+    url: https://www.yicai.com
+    category: 财经金融
+    enabled: true
+
+  # ===== 科学前沿 =====
+  - name: Nature News
+    url: https://www.nature.com/news
+    category: 科学前沿
+    enabled: true
+
+  - name: Science News
+    url: https://www.sciencenews.org
+    category: 科学前沿
+    enabled: true
+
+  # ===== 政策监管 =====
   - name: 工信部新闻发布
     url: https://www.miit.gov.cn
     category: 政策监管
@@ -60,21 +140,18 @@ sources:
     category: 政策监管
     enabled: true
 
+  # ===== 国内科技 =====
   - name: IT之家
     url: https://www.ithome.com
     category: 国内科技
     enabled: true
 
-  - name: 雷峰网
-    url: https://www.leiphone.com
-    category: AI产业
+  - name: 少数派
+    url: https://sspai.com
+    category: 国内科技
     enabled: true
 
-  - name: 虎嗅
-    url: https://www.huxiu.com
-    category: 商业科技
-    enabled: true
-
+  # ===== 国内时事 =====
   - name: 澎湃新闻
     url: https://www.thepaper.cn
     category: 国内时事
@@ -95,6 +172,7 @@ sources:
     category: 国内时事
     enabled: true
 
+  # ===== 国际时事 =====
   - name: BBC World
     url: https://www.bbc.com/news/world
     category: 国际时事

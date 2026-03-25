@@ -18,7 +18,7 @@
   </div>
 
   <!-- KPI 卡片 -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Total Runs -->
     <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
       <div class="flex items-center gap-2 mb-2">
@@ -54,6 +54,21 @@
       <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">
         {% if overview.avg_duration_sec %}
           {{ (overview.avg_duration_sec // 60) | int }}m {{ (overview.avg_duration_sec % 60) | round(0) | int }}s
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Total Configured Sources -->
+    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="database" class="w-4 h-4 text-slate-400"></i>
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ t('stats_configured_sources') }}</span>
+      </div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-100">
+        {% if overview.total_configured %}
+          {{ overview.total_configured }}
         {% else %}
           —
         {% endif %}
@@ -105,10 +120,12 @@
             <td class="px-5 py-3">
               <div class="flex items-center gap-1">
                 {% for s in src.recent %}
-                  {% if s %}
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  {% if s is none %}
+                    <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" title="{{ t('stats_dot_skipped') }}"></span>
+                  {% elif s %}
+                    <span class="w-2 h-2 rounded-full bg-emerald-500" title="{{ t('stats_dot_success') }}"></span>
                   {% else %}
-                    <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                    <span class="w-2 h-2 rounded-full bg-red-400" title="{{ t('stats_dot_failed') }}"></span>
                   {% endif %}
                 {% endfor %}
               </div>

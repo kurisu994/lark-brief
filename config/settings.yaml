@@ -20,6 +20,7 @@ crawler:
   filter_threshold: 0.45  # PruningContentFilter 阈值
   page_timeout: 90000     # 页面加载超时（毫秒），默认 60000
   retry_count: 1          # 失败源重试次数
+  select_count: 10        # 每次随机选取的资讯源数量（0 表示全部爬取）
 
 output:
   dir: output

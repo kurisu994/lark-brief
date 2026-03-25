@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS run_logs (
     fail_count INTEGER DEFAULT 0,
     news_count INTEGER DEFAULT 0,
     duration_sec REAL DEFAULT 0,
-    status TEXT DEFAULT 'running'
+    status TEXT DEFAULT 'running',
+    total_configured INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS source_logs (
@@ -37,8 +38,18 @@ CREATE TABLE IF NOT EXISTS source_logs (
     FOREIGN KEY (run_id) REFERENCES run_logs(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS news_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_run_logs_date ON run_logs(run_date);
 CREATE INDEX IF NOT EXISTS idx_source_logs_run ON source_logs(run_id);
+CREATE INDEX IF NOT EXISTS idx_news_history_date ON news_history(run_date);
+CREATE INDEX IF NOT EXISTS idx_news_history_url ON news_history(url);
 """
 
 
@@ -75,6 +86,8 @@ class Store:
         """初始化数据库和表结构"""
         conn = self._get_conn()
         conn.executescript(_INIT_SQL)
+        # 兼容旧数据库：检查 run_logs 是否已有 total_configured 列
+        self._migrate_add_column(conn, "run_logs", "total_configured", "INTEGER DEFAULT 0")
         conn.commit()
 
     def _get_conn(self) -> sqlite3.Connection:
@@ -86,7 +99,15 @@ class Store:
             self._conn.row_factory = sqlite3.Row
         return self._conn
 
-    def start_run(self, run_date: str) -> int:
+    @staticmethod
+    def _migrate_add_column(conn: sqlite3.Connection, table: str, column: str, col_def: str) -> None:
+        """安全地为已有表添加新列（若列已存在则跳过）"""
+        cursor = conn.execute(f"PRAGMA table_info({table})")
+        existing = {row[1] for row in cursor.fetchall()}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+
+    def start_run(self, run_date: str, total_configured: int = 0) -> int:
         """记录一次运行开始，返回 run_id
 
         同一天重复执行时，删除旧记录后插入新记录（覆盖语义）。
@@ -95,9 +116,11 @@ class Store:
         conn = self._get_conn()
         # 删除同日期旧记录，确保一天只有一条
         conn.execute("DELETE FROM run_logs WHERE run_date = ?", (run_date,))
+        # 同时清理同日期的历史新闻
+        conn.execute("DELETE FROM news_history WHERE run_date = ?", (run_date,))
         cursor = conn.execute(
-            "INSERT INTO run_logs (run_date, started_at, status) VALUES (?, ?, 'running')",
-            (run_date, datetime.now().isoformat()),
+            "INSERT INTO run_logs (run_date, started_at, status, total_configured) VALUES (?, ?, 'running', ?)",
+            (run_date, datetime.now().isoformat(), total_configured),
         )
         conn.commit()
         return cursor.lastrowid or 0
@@ -207,7 +230,7 @@ class Store:
         rows = conn.execute(
             """SELECT id, run_date, started_at, finished_at,
                       total_sources, success_count, fail_count,
-                      news_count, duration_sec, status
+                      news_count, duration_sec, status, total_configured
                FROM run_logs ORDER BY run_date DESC, id DESC
                LIMIT ? OFFSET ?""",
             (limit, offset),
@@ -226,7 +249,7 @@ class Store:
         row = conn.execute(
             """SELECT id, run_date, started_at, finished_at,
                       total_sources, success_count, fail_count,
-                      news_count, duration_sec, status
+                      news_count, duration_sec, status, total_configured
                FROM run_logs WHERE run_date = ?
                ORDER BY id DESC LIMIT 1""",
             (run_date,),
@@ -248,7 +271,7 @@ class Store:
     # ========== 统计查询方法（Phase 2） ==========
 
     def get_stats_overview(self) -> dict:
-        """总体统计：总运行次数、平均成功率、平均耗时"""
+        """总体统计：总运行次数、平均成功率、平均耗时、平均配置源数"""
         conn = self._get_conn()
         row = conn.execute(
             """SELECT
@@ -259,12 +282,14 @@ class Store:
                         ELSE 0 END
                  ), 0) AS avg_success_rate,
                  COALESCE(AVG(duration_sec), 0) AS avg_duration_sec,
-                 COALESCE(AVG(news_count), 0) AS avg_news_count
+                 COALESCE(AVG(news_count), 0) AS avg_news_count,
+                 COALESCE(MAX(total_configured), 0) AS total_configured
                FROM run_logs WHERE status != 'running'"""
         ).fetchone()
         return dict(row) if row else {
             "total_runs": 0, "avg_success_rate": 0,
             "avg_duration_sec": 0, "avg_news_count": 0,
+            "total_configured": 0,
         }
 
     def get_success_trend(self, days: int = 30) -> list[dict]:
@@ -307,20 +332,81 @@ class Store:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def get_source_recent_status(self, source_name: str, days: int = 7) -> list[int]:
-        """获取单个源近 N 天的逐日状态（1=成功, 0=失败）"""
+    def get_source_recent_status(self, source_name: str, days: int = 7) -> list[int | None]:
+        """获取单个源近 N 天的逐日状态（1=成功, 0=失败, None=未选中）"""
+        conn = self._get_conn()
+        # 获取近 N 天有运行记录的日期
+        run_dates = conn.execute(
+            """SELECT DISTINCT run_date FROM run_logs
+               WHERE run_date >= date('now', ?) AND status != 'running'
+               ORDER BY run_date ASC""",
+            (f"-{days} days",),
+        ).fetchall()
+
+        result: list[int | None] = []
+        for row in run_dates:
+            rd = row[0]
+            src_row = conn.execute(
+                """SELECT sl.success FROM source_logs sl
+                   JOIN run_logs rl ON sl.run_id = rl.id
+                   WHERE sl.source_name = ? AND rl.run_date = ?
+                     AND sl.source_name NOT LIKE '%[LLM]'""",
+                (source_name, rd),
+            ).fetchone()
+            if src_row is None:
+                result.append(None)  # 未选中
+            else:
+                result.append(src_row[0])
+        return result
+
+    # ========== 历史新闻方法 ==========
+
+    def save_news_history(self, run_date: str, items: list[dict]) -> None:
+        """保存本次简报的新闻到历史表
+
+        Args:
+            run_date: 运行日期（YYYY-MM-DD）
+            items: 新闻列表，每项需有 summary 和 url 字段
+        """
+        conn = self._get_conn()
+        now = datetime.now().isoformat()
+        conn.executemany(
+            "INSERT INTO news_history (run_date, summary, url, created_at) VALUES (?, ?, ?, ?)",
+            [(run_date, item["summary"], item["url"], now) for item in items],
+        )
+        conn.commit()
+        logger.info("📝 已保存 %d 条新闻到历史记录", len(items))
+
+    def get_recent_news_urls(self, days: int = 7) -> set[str]:
+        """获取近 N 天的历史新闻 URL 集合（用于精确去重）"""
         conn = self._get_conn()
         rows = conn.execute(
-            """SELECT sl.success
-               FROM source_logs sl
-               JOIN run_logs rl ON sl.run_id = rl.id
-               WHERE sl.source_name = ?
-                 AND rl.run_date >= date('now', ?)
-                 AND sl.source_name NOT LIKE '%[LLM]'
-               ORDER BY rl.run_date ASC""",
-            (source_name, f"-{days} days"),
+            "SELECT DISTINCT url FROM news_history WHERE run_date >= date('now', ?)",
+            (f"-{days} days",),
+        ).fetchall()
+        return {row[0] for row in rows}
+
+    def get_recent_news_summaries(self, days: int = 3) -> list[str]:
+        """获取近 N 天的历史新闻摘要（用于 LLM 语义去重）"""
+        conn = self._get_conn()
+        rows = conn.execute(
+            """SELECT summary FROM news_history
+               WHERE run_date >= date('now', ?)
+               ORDER BY run_date DESC""",
+            (f"-{days} days",),
         ).fetchall()
         return [row[0] for row in rows]
+
+    def cleanup_old_news_history(self, keep_days: int = 30) -> None:
+        """清理超过指定天数的历史新闻"""
+        conn = self._get_conn()
+        deleted = conn.execute(
+            "DELETE FROM news_history WHERE run_date < date('now', ?)",
+            (f"-{keep_days} days",),
+        ).rowcount
+        if deleted:
+            conn.commit()
+            logger.info("🧹 清理 %d 条过期历史新闻", deleted)
 
     def close(self) -> None:
         """关闭数据库连接"""

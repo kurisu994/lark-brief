@@ -13,7 +13,7 @@ import yaml
 from dotenv import load_dotenv
 
 from src.composer import compose_brief
-from src.crawler import crawl_sources
+from src.crawler import crawl_sources, select_sources
 from src.pusher import DingTalkPusher, FeishuPusher
 from src.store import Store
 from src.summarizer import extract_news, merge_and_rank
@@ -90,15 +90,19 @@ async def generate_daily_brief() -> None:
     store = Store(db_path=db_path, max_size_mb=store_settings.get("max_db_size_mb", 50))
 
     today_str = date.today().isoformat()
-    run_id = store.start_run(today_str)
+    run_id = store.start_run(today_str, total_configured=len(sources))
     start_time = time.time()
 
     logger.info("========== 云雀简报 — 开始生成 (run_id=%d) ==========", run_id)
 
     try:
+        # 1.5 随机选源（保证分类覆盖）
+        select_count = crawler_settings.get("select_count", 0)
+        selected_sources = select_sources(sources, select_count)
+
         # 2. 并发爬取
         crawl_results = await crawl_sources(
-            sources=sources,
+            sources=selected_sources,
             headless=crawler_settings.get("headless", True),
             filter_threshold=crawler_settings.get("filter_threshold", 0.45),
             page_timeout=crawler_settings.get("page_timeout", 60000),
@@ -171,7 +175,26 @@ async def generate_daily_brief() -> None:
             )
             return
 
-        logger.info("共提取 %d 条新闻，开始去重排序", len(all_news))
+        logger.info("共提取 %d 条新闻，开始历史去重", len(all_news))
+
+        # 3.5 历史去重：先用 URL 精确过滤，再获取历史摘要供 LLM 语义去重
+        historical_urls = store.get_recent_news_urls(days=7)
+        if historical_urls:
+            before_count = len(all_news)
+            all_news = [item for item in all_news if item.url not in historical_urls]
+            filtered_count = before_count - len(all_news)
+            if filtered_count > 0:
+                logger.info("URL 去重: 过滤 %d 条历史重复新闻，剩余 %d 条", filtered_count, len(all_news))
+
+        if not all_news:
+            logger.warning("历史去重后无新闻，终止流程")
+            store.finish_run(
+                run_id, len(crawl_results), len(success_results), 0, start_time, "success"
+            )
+            return
+
+        historical_summaries = store.get_recent_news_summaries(days=3)
+        logger.info("开始去重排序（历史摘要 %d 条）", len(historical_summaries))
 
         # 4. 去重排序
         max_items = brief_settings.get("max_items", 15)
@@ -182,6 +205,7 @@ async def generate_daily_brief() -> None:
             max_items=max_items,
             min_items=min_items,
             proxy=llm_proxy,
+            historical_summaries=historical_summaries if historical_summaries else None,
         )
 
         if not ranked_news:
@@ -203,6 +227,12 @@ async def generate_daily_brief() -> None:
         output_file = output_dir / f"{today.isoformat()}.md"
         output_file.write_text(brief_md, encoding="utf-8")
         logger.info("✅ 简报已保存: %s", output_file)
+
+        # 6.5 保存新闻到历史表（用于后续历史去重）
+        store.save_news_history(
+            today_str,
+            [{"summary": n.summary, "url": n.url} for n in ranked_news],
+        )
 
         # 7. 推送到各渠道
         dingtalk_cfg = pusher_settings.get("dingtalk", {})
@@ -248,7 +278,8 @@ async def generate_daily_brief() -> None:
             pusher_proxy = proxy if proxy and network_settings.get("enable_for_pusher") else None
             await _push_alert(pusher_settings, "❌ 云雀简报运行异常，请查看日志。", proxy=pusher_proxy)
     finally:
-        # 清理过大的数据库文件
+        # 清理过大的数据库文件和过期历史新闻
+        store.cleanup_old_news_history(keep_days=30)
         store.cleanup_if_needed()
         store.close()
 
