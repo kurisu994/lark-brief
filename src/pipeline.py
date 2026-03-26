@@ -14,7 +14,7 @@ from src.composer import compose_brief
 from src.crawler import crawl_sources, select_sources
 from src.pusher import DingTalkPusher, FeishuPusher
 from src.store import Store
-from src.summarizer import extract_news, merge_and_rank
+from src.summarizer import deduplicate_by_similarity, extract_news, merge_and_rank
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ async def generate_daily_brief() -> None:
 
         logger.info("共提取 %d 条新闻，开始历史去重", len(all_news))
 
-        # 3.5 历史去重：先用 URL 精确过滤，再获取历史摘要供 LLM 语义去重
+        # 3.5 历史去重：URL 精确过滤
         historical_urls = store.get_recent_news_urls(days=7)
         if historical_urls:
             before_count = len(all_news)
@@ -184,16 +184,31 @@ async def generate_daily_brief() -> None:
                 logger.info("URL 去重: 过滤 %d 条历史重复新闻，剩余 %d 条", filtered_count, len(all_news))
 
         if not all_news:
-            logger.warning("历史去重后无新闻，终止流程")
+            logger.warning("URL 去重后无新闻，终止流程")
             store.finish_run(
                 run_id, len(crawl_results), len(success_results), 0, start_time, "success"
             )
             return
 
+        # 3.6 文本相似度预去重（快速过滤跨源重复和历史相似新闻）
         historical_summaries = store.get_recent_news_summaries(days=3)
-        logger.info("开始去重排序（历史摘要 %d 条）", len(historical_summaries))
+        before_sim = len(all_news)
+        all_news = deduplicate_by_similarity(
+            all_news,
+            historical_summaries=historical_summaries if historical_summaries else None,
+        )
+        if before_sim != len(all_news):
+            logger.info("文本去重: %d → %d 条", before_sim, len(all_news))
 
-        # 4. 去重排序
+        if not all_news:
+            logger.warning("文本去重后无新闻，终止流程")
+            store.finish_run(
+                run_id, len(crawl_results), len(success_results), 0, start_time, "success"
+            )
+            return
+
+        # 4. LLM 去重排序
+        logger.info("开始 LLM 去重排序（历史摘要 %d 条，当前新闻 %d 条）", len(historical_summaries), len(all_news))
         max_items = brief_settings.get("max_items", 15)
         min_items = brief_settings.get("min_items", 10)
         ranked_news = await merge_and_rank(

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from dataclasses import asdict, dataclass
+from difflib import SequenceMatcher
 from typing import Any
 
 import httpx
@@ -34,21 +35,22 @@ EXTRACT_PROMPT = """你是一位资深的科技资讯编辑。请从以下资讯
 {content}"""
 
 # 合并去重排序 Prompt 模板
-MERGE_PROMPT = """你是一位面向软件工程师的资讯编辑。以下是从多个来源提取的新闻列表，请进行去重和排序：
+MERGE_PROMPT = """你是一位面向软件工程师的资讯编辑。以下是从多个来源提取的新闻列表，请进行严格去重和排序：
 
 要求：
-1. 识别重复或高度相似的新闻（同一事件的不同报道），合并为一条，保留信息量更大的版本
-2. 按重要性和时效性排序
-3. 最终选取 {min_items}-{max_items} 条最有价值的新闻
-4. 软件工程师相关板块（开发技术、AI、开源、安全）的新闻总占比控制在 25% 左右
-5. 保持每条新闻的摘要和链接不变
-6. 严格返回 JSON 数组，不要包含其他内容
+1. **严格去重**：识别描述同一事件的不同报道——即使来自不同来源、措辞不同、报道角度不同，只要核心事件相同就视为重复，合并为一条，保留信息量更大的版本
+2. 注意不同来源可能存在报道时间差，同一新闻可能被多个来源先后收录，这类情况也必须去重
+3. 按重要性和时效性排序
+4. 最终选取 {min_items}-{max_items} 条最有价值的新闻
+5. 软件工程师相关板块（开发技术、AI、开源、安全）的新闻总占比控制在 25% 左右
+6. 保持每条新闻的摘要和链接不变
+7. 严格返回 JSON 数组，不要包含其他内容
 {history_section}
 {all_news_json}"""
 
 # 历史去重提示片段
 _HISTORY_SECTION = """
-7. 以下是近几天已经发布过的新闻摘要，请避免选择与这些内容重复或高度相似的新闻：
+8. **历史去重（重要）**：以下是近几天已发布过的新闻摘要，请严格排除与这些历史新闻内容相同或高度相似的条目。即使措辞不同，只要描述的是同一事件、同一产品发布、同一政策变化等，都应排除：
 {historical_summaries}
 """
 
@@ -165,9 +167,10 @@ async def merge_and_rank(
     if not all_news:
         return []
 
-    # 条目数不多时直接排序返回，无需 LLM 去重
-    if len(all_news) <= max_items:
-        logger.info("新闻总数 (%d) 不超过上限 (%d)，跳过 LLM 去重", len(all_news), max_items)
+    # 仅当无历史摘要且条目数较少时才跳过 LLM 去重
+    # 有历史摘要时必须走 LLM 以排除与往日重复的内容
+    if len(all_news) <= max_items and not historical_summaries:
+        logger.info("新闻总数 (%d) 不超过上限且无历史摘要，跳过 LLM 去重", len(all_news), max_items)
         return sorted(all_news, key=lambda x: x.importance, reverse=True)
 
     client = _create_client(settings, proxy)
@@ -180,7 +183,7 @@ async def merge_and_rank(
     # 构建历史去重片段
     history_section = ""
     if historical_summaries:
-        history_text = "\n".join(f"- {s}" for s in historical_summaries[:50])
+        history_text = "\n".join(f"- {s}" for s in historical_summaries[:100])
         history_section = _HISTORY_SECTION.format(historical_summaries=history_text)
 
     prompt = MERGE_PROMPT.format(
@@ -216,3 +219,63 @@ async def merge_and_rank(
         logger.warning("❌ LLM 去重排序失败，降级为按重要性排序: %s", e)
         sorted_news = sorted(all_news, key=lambda x: x.importance, reverse=True)
         return sorted_news[:max_items]
+
+
+def deduplicate_by_similarity(
+    news: list[NewsItem],
+    historical_summaries: list[str] | None = None,
+    batch_threshold: float = 0.4,
+    history_threshold: float = 0.35,
+) -> list[NewsItem]:
+    """基于文本相似度的预去重（LLM 去重前的快速过滤）
+
+    两阶段过滤：
+    1. 排除与历史摘要相似的新闻（跨天去重）
+    2. 排除批次内互相重复的新闻（跨源去重）
+
+    Args:
+        news: 待去重的新闻列表
+        historical_summaries: 历史新闻摘要列表
+        batch_threshold: 批次内去重相似度阈值（0-1）
+        history_threshold: 历史去重相似度阈值（0-1）
+    """
+    if not news:
+        return []
+
+    result = list(news)
+
+    # 阶段一：与历史摘要比对，排除已报道的新闻
+    if historical_summaries:
+        filtered = []
+        for item in result:
+            is_dup = any(
+                SequenceMatcher(None, item.summary, hist).ratio() > history_threshold
+                for hist in historical_summaries
+            )
+            if is_dup:
+                logger.info("📋 文本去重(历史): 「%s」与历史新闻相似，已过滤", item.summary[:40])
+            else:
+                filtered.append(item)
+        removed = len(result) - len(filtered)
+        if removed > 0:
+            logger.info("📋 文本去重(历史): 共过滤 %d 条与历史相似的新闻", removed)
+        result = filtered
+
+    # 阶段二：批次内去重，优先保留重要性更高的版本
+    sorted_by_importance = sorted(result, key=lambda x: x.importance, reverse=True)
+    unique: list[NewsItem] = []
+    for item in sorted_by_importance:
+        is_dup = any(
+            SequenceMatcher(None, item.summary, existing.summary).ratio() > batch_threshold
+            for existing in unique
+        )
+        if is_dup:
+            logger.info("📋 文本去重(批次): 「%s」与已选新闻相似，已过滤", item.summary[:40])
+        else:
+            unique.append(item)
+
+    removed = len(result) - len(unique)
+    if removed > 0:
+        logger.info("📋 文本去重(批次): 共过滤 %d 条批次内重复新闻", removed)
+
+    return unique
