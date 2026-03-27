@@ -31,7 +31,7 @@ brief:
   min_items: 10
 
 schedule:
-  cron: "10 9 * * *"        # Cron 表达式：每天 9:10 执行
+  cron: "30 8 * * *"        # Cron 表达式：每天 8:30 执行
   timezone: "Asia/Shanghai"
 
 store:
