@@ -16,6 +16,26 @@ sources:
     category: 开发技术
     enabled: true
 
+  - name: CSS-Tricks
+    url: https://css-tricks.com
+    category: 开发技术
+    enabled: true
+
+  - name: Smashing Magazine
+    url: https://www.smashingmagazine.com
+    category: 开发技术
+    enabled: true
+
+  - name: The New Stack
+    url: https://thenewstack.io
+    category: 开发技术
+    enabled: true
+
+  - name: DZone
+    url: https://dzone.com
+    category: 开发技术
+    enabled: true
+
   # ===== AI/开源 =====
   - name: Hugging Face Blog
     url: https://huggingface.co/blog
@@ -24,6 +44,31 @@ sources:
 
   - name: OpenAI Blog
     url: https://openai.com/blog
+    category: AI/开源
+    enabled: true
+
+  - name: Google AI Blog
+    url: https://blog.google/technology/ai/
+    category: AI/开源
+    enabled: true
+
+  - name: Anthropic Blog
+    url: https://www.anthropic.com/news
+    category: AI/开源
+    enabled: true
+
+  - name: DeepMind Blog
+    url: https://deepmind.google/discover/blog/
+    category: AI/开源
+    enabled: true
+
+  - name: 机器之心
+    url: https://www.jiqizhixin.com
+    category: AI/开源
+    enabled: true
+
+  - name: 量子位
+    url: https://www.qbitai.com
     category: AI/开源
     enabled: true
 
@@ -118,6 +163,36 @@ sources:
     category: 财经金融
     enabled: true
 
+  - name: 东方财富
+    url: https://www.eastmoney.com
+    category: 财经金融
+    enabled: true
+
+  - name: 雪球
+    url: https://xueqiu.com
+    category: 财经金融
+    enabled: true
+
+  - name: 同花顺财经
+    url: https://news.10jqka.com.cn
+    category: 财经金融
+    enabled: true
+
+  - name: MarketWatch
+    url: https://www.marketwatch.com
+    category: 财经金融
+    enabled: true
+
+  - name: Seeking Alpha
+    url: https://seekingalpha.com
+    category: 财经金融
+    enabled: true
+
+  - name: Investing.com
+    url: https://www.investing.com
+    category: 财经金融
+    enabled: true
+
   # ===== 科学前沿 =====
   - name: Nature News
     url: https://www.nature.com/news
@@ -126,6 +201,21 @@ sources:
 
   - name: Science News
     url: https://www.sciencenews.org
+    category: 科学前沿
+    enabled: true
+
+  - name: Quanta Magazine
+    url: https://www.quantamagazine.org
+    category: 科学前沿
+    enabled: true
+
+  - name: New Scientist
+    url: https://www.newscientist.com
+    category: 科学前沿
+    enabled: true
+
+  - name: 环球科学
+    url: https://www.huanqiukexue.com
     category: 科学前沿
     enabled: true
 
@@ -191,4 +281,41 @@ sources:
   - name: The Guardian World
     url: https://www.theguardian.com/world
     category: 国际时事
+    enabled: true
+
+  - name: NPR News
+    url: https://www.npr.org/sections/news/
+    category: 国际时事
+    enabled: true
+
+  - name: France 24
+    url: https://www.france24.com/en/
+    category: 国际时事
+    enabled: true
+
+  - name: NHK World
+    url: https://www3.nhk.or.jp/nhkworld/en/news/
+    category: 国际时事
+    enabled: true
+
+  # ===== 产品设计 =====
+  - name: Product Hunt
+    url: https://www.producthunt.com
+    category: 产品设计
+    enabled: true
+
+  - name: TechMeme
+    url: https://www.techmeme.com
+    category: 产品设计
+    enabled: true
+
+  # ===== 独立开发/创业 =====
+  - name: Indie Hackers
+    url: https://www.indiehackers.com
+    category: 独立开发/创业
+    enabled: true
+
+  - name: Y Combinator Blog
+    url: https://www.ycombinator.com/blog
+    category: 独立开发/创业
     enabled: true
