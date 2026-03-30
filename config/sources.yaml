@@ -4,7 +4,8 @@ sources:
     url: https://www.infoq.cn/news
     category: 开发技术
     enabled: true
-    wait_for: ".news-list"
+    type: rss
+    feed_url: https://www.infoq.cn/feed
 
   - name: Dev.to
     url: https://dev.to
@@ -15,6 +16,8 @@ sources:
     url: https://news.ycombinator.com
     category: 开发技术
     enabled: true
+    type: rss
+    feed_url: https://hnrss.org/frontpage
 
   - name: CSS-Tricks
     url: https://css-tricks.com
@@ -277,6 +280,8 @@ sources:
     url: https://www.aljazeera.com/news/
     category: 国际时事
     enabled: true
+    type: rss
+    feed_url: https://www.aljazeera.com/xml/rss/all.xml
 
   - name: The Guardian World
     url: https://www.theguardian.com/world

@@ -11,7 +11,8 @@ import yaml
 from dotenv import load_dotenv
 
 from src.composer import compose_brief
-from src.crawler import crawl_sources, select_sources
+from src.crawler import CrawlResult, crawl_sources, select_sources
+from src.feed import fetch_feeds
 from src.pusher import DingTalkPusher, FeishuPusher
 from src.store import Store
 from src.summarizer import deduplicate_by_similarity, extract_news, merge_and_rank
@@ -98,15 +99,32 @@ async def generate_daily_brief() -> None:
         select_count = crawler_settings.get("select_count", 0)
         selected_sources = select_sources(sources, select_count)
 
-        # 2. 并发爬取
-        crawl_results = await crawl_sources(
-            sources=selected_sources,
-            headless=crawler_settings.get("headless", True),
-            filter_threshold=crawler_settings.get("filter_threshold", 0.45),
-            page_timeout=crawler_settings.get("page_timeout", 60000),
-            retry_count=crawler_settings.get("retry_count", 0),
-            proxy=crawler_proxy,
-        )
+        # 2. 按类型分流：RSS Feed 获取 + 网页爬取
+        web_sources = [s for s in selected_sources if s.get("type", "web") != "rss"]
+        rss_sources = [s for s in selected_sources if s.get("type") == "rss"]
+
+        crawl_results: list[CrawlResult] = []
+
+        if rss_sources:
+            feed_settings = settings.get("feed", {})
+            feed_results = await fetch_feeds(
+                sources=rss_sources,
+                timeout=feed_settings.get("timeout", 30),
+                max_entries=feed_settings.get("max_entries", 20),
+                proxy=crawler_proxy,
+            )
+            crawl_results.extend(feed_results)
+
+        if web_sources:
+            web_results = await crawl_sources(
+                sources=web_sources,
+                headless=crawler_settings.get("headless", True),
+                filter_threshold=crawler_settings.get("filter_threshold", 0.45),
+                page_timeout=crawler_settings.get("page_timeout", 60000),
+                retry_count=crawler_settings.get("retry_count", 0),
+                proxy=crawler_proxy,
+            )
+            crawl_results.extend(web_results)
 
         # 记录每源爬取结果
         for r in crawl_results:
