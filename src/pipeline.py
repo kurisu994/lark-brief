@@ -167,7 +167,12 @@ async def generate_daily_brief(send_notification: bool = True) -> None:
     try:
         # 1.5 随机选源（保证分类覆盖）
         select_count = crawler_settings.get("select_count", 0)
-        selected_sources = select_sources(sources, select_count)
+        category_weights = crawler_settings.get("category_weights", {})
+        selected_sources = select_sources(
+            sources,
+            select_count,
+            category_weights=category_weights,
+        )
 
         # 2. 按类型分流：RSS Feed 获取 + 网页爬取
         web_sources = [s for s in selected_sources if s.get("type", "web") != "rss"]
@@ -306,6 +311,7 @@ async def generate_daily_brief(send_notification: bool = True) -> None:
             min_items=min_items,
             proxy=llm_proxy,
             historical_summaries=historical_summaries if historical_summaries else None,
+            category_weights=category_weights,
         )
 
         if not ranked_news:

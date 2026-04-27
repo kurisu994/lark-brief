@@ -67,12 +67,47 @@ def _extract_content(raw: RawCrawlResult, source: dict) -> CrawlResult:
         )
 
 
-def select_sources(sources: list[dict], select_count: int = 0) -> list[dict]:
-    """随机选取资讯源，保证尽可能覆盖每个 category
+def _category_weight(category: str, category_weights: dict[str, float] | None) -> float:
+    """读取分类权重，非法或负数权重按 0 处理"""
+    if not category_weights:
+        return 1.0
+    try:
+        return max(float(category_weights.get(category, 1.0)), 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _weighted_sample_without_replacement(
+    items: list[dict],
+    count: int,
+    category_weights: dict[str, float] | None,
+) -> list[dict]:
+    """按分类权重无重复抽样"""
+    pool = items.copy()
+    selected: list[dict] = []
+
+    while pool and len(selected) < count:
+        weights = [_category_weight(s.get("category", "未分类"), category_weights) for s in pool]
+        if sum(weights) <= 0:
+            break
+        chosen = random.choices(pool, weights=weights, k=1)[0]
+        selected.append(chosen)
+        pool.remove(chosen)
+
+    return selected
+
+
+def select_sources(
+    sources: list[dict],
+    select_count: int = 0,
+    category_weights: dict[str, float] | None = None,
+) -> list[dict]:
+    """按分类权重随机选取资讯源
 
     Args:
         sources: 所有启用的资讯源列表
         select_count: 选取数量，0 表示全部选取
+        category_weights: 分类抽样权重，未配置分类默认为 1.0
 
     Returns:
         选中的资讯源列表
@@ -81,33 +116,42 @@ def select_sources(sources: list[dict], select_count: int = 0) -> list[dict]:
     if select_count <= 0 or select_count >= len(enabled):
         return enabled
 
+    if category_weights:
+        pool = [
+            s
+            for s in enabled
+            if _category_weight(s.get("category", "未分类"), category_weights) > 0
+        ]
+        selected = _weighted_sample_without_replacement(
+            pool,
+            min(select_count, len(pool)),
+            category_weights,
+        )
+        random.shuffle(selected)
+        logger.info(
+            "加权选源: 从 %d 个源中选取 %d 个，覆盖 %d 个分类",
+            len(enabled), len(selected),
+            len({s.get("category") for s in selected}),
+        )
+        return selected
+
     # 按 category 分组
     by_category: dict[str, list[dict]] = defaultdict(list)
     for s in enabled:
         by_category[s.get("category", "未分类")].append(s)
 
-    selected: list[dict] = []
     categories = list(by_category.keys())
+    selected_categories = categories[:select_count] if len(categories) <= select_count else random.sample(categories, select_count)
 
-    if len(categories) <= select_count:
-        # category 数不超过名额：每个 category 至少选 1 个
-        for cat in categories:
-            chosen = random.choice(by_category[cat])
-            selected.append(chosen)
+    selected = [random.choice(by_category[cat]) for cat in selected_categories]
 
-        # 剩余名额从未选中的源中随机补充
-        remaining = select_count - len(selected)
-        if remaining > 0:
-            selected_set = {id(s) for s in selected}
-            pool = [s for s in enabled if id(s) not in selected_set]
-            if pool:
-                extra = random.sample(pool, min(remaining, len(pool)))
-                selected.extend(extra)
-    else:
-        # category 数超过名额：随机选 select_count 个 category，各取 1 个
-        chosen_cats = random.sample(categories, select_count)
-        for cat in chosen_cats:
-            selected.append(random.choice(by_category[cat]))
+    remaining = select_count - len(selected)
+    if remaining > 0:
+        selected_set = {id(s) for s in selected}
+        pool = [s for s in enabled if id(s) not in selected_set]
+        if pool:
+            extra = random.sample(pool, min(remaining, len(pool)))
+            selected.extend(extra)
 
     random.shuffle(selected)
     logger.info(

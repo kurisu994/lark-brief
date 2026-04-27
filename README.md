@@ -86,6 +86,7 @@ docker compose up -d
 
 手动生成会将简报保存到 `output/YYYY-MM-DD.md`，并立即推送到钉钉/飞书群。
 定时调度默认在 8:30 生成当天简报，9:00 发送当天简报通知，可在 `config/settings.yaml` 的 `schedule.generate_cron` 和 `schedule.push_cron` 中调整。
+简报选题可通过 `config/settings.yaml` 的 `crawler.category_weights` 调整分类偏好；当前默认降低「网络安全」权重，提高「国内时事」「国际时事」权重。
 Docker 部署后访问 `http://localhost:9090` 浏览 Web 界面。
 
 ## 🏗️ 项目结构

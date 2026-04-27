@@ -7,7 +7,7 @@ network:
 llm:
   base_url: https://ark.cn-beijing.volces.com/api/v3
   model: "deepseek-v3-2-251201"
-  temperature: 0.7
+  temperature: 0.3
   top_p: 0.95
   max_tokens: 4096
   timeout: 600
@@ -25,6 +25,10 @@ crawler:
   page_timeout: 90000     # 页面加载超时（毫秒），默认 60000
   retry_count: 1          # 失败源重试次数
   select_count: 15        # 每次随机选取的资讯源数量（0 表示全部爬取）
+  category_weights:       # 分类抽样/排序权重，未列出的分类默认为 1.0
+    网络安全: 0.3
+    国内时事: 1.8
+    国际时事: 1.8
 
 output:
   dir: output
