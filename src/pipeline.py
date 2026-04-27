@@ -55,7 +55,77 @@ async def _push_alert(
         await fs_pusher.push(title="⚠️ 云雀简报告警", content=message)
 
 
-async def generate_daily_brief() -> None:
+def _get_pusher_proxy(settings: dict[str, Any]) -> str | None:
+    """根据网络配置返回推送代理地址"""
+    network_settings = settings.get("network", {})
+    proxy = network_settings.get("proxy")
+    if proxy and network_settings.get("enable_for_pusher"):
+        return proxy
+    return None
+
+
+async def _push_brief_content(
+    pusher_settings: dict[str, Any],
+    brief_md: str,
+    proxy: str | None = None,
+) -> bool:
+    """推送简报内容到已启用渠道，返回是否全部成功"""
+    results: list[bool] = []
+
+    dingtalk_cfg = pusher_settings.get("dingtalk", {})
+    if dingtalk_cfg.get("enabled", False):
+        pusher = DingTalkPusher(
+            webhook_url=dingtalk_cfg.get("webhook_url"),
+            proxy=proxy,
+        )
+        results.append(await pusher.push(title="今日简报", content=brief_md))
+    else:
+        logger.info("钉钉推送未启用，跳过")
+
+    feishu_cfg = pusher_settings.get("feishu", {})
+    if feishu_cfg.get("enabled", False):
+        fs_pusher = FeishuPusher(
+            webhook_url=feishu_cfg.get("webhook_url"),
+            proxy=proxy,
+        )
+        results.append(await fs_pusher.push(title="今日简报", content=brief_md))
+    else:
+        logger.info("飞书推送未启用，跳过")
+
+    return all(results) if results else True
+
+
+async def push_daily_brief() -> bool:
+    """读取当天已生成简报并推送到各渠道"""
+    load_dotenv(ROOT_DIR / ".env")
+
+    settings = load_yaml(ROOT_DIR / "config" / "settings.yaml")
+    pusher_settings = settings.get("pushers", {})
+    alert_settings = settings.get("alert", {})
+    pusher_proxy = _get_pusher_proxy(settings)
+
+    today = date.today()
+    output_dir = ROOT_DIR / settings.get("output", {}).get("dir", "output")
+    output_file = output_dir / f"{today.isoformat()}.md"
+
+    if not output_file.exists():
+        message = f"⚠️ 今日简报文件不存在，无法发送通知: {output_file}"
+        logger.error(message)
+        if alert_settings.get("enabled", False):
+            await _push_alert(pusher_settings, message, proxy=pusher_proxy)
+        return False
+
+    brief_md = output_file.read_text(encoding="utf-8")
+    logger.info("开始推送今日简报: %s", output_file)
+    success = await _push_brief_content(pusher_settings, brief_md, proxy=pusher_proxy)
+    if success:
+        logger.info("今日简报通知发送完成")
+    else:
+        logger.warning("今日简报通知存在发送失败的渠道")
+    return success
+
+
+async def generate_daily_brief(send_notification: bool = True) -> None:
     """生成每日简报的完整流程"""
     # 0. 加载环境变量
     load_dotenv(ROOT_DIR / ".env")
@@ -76,7 +146,7 @@ async def generate_daily_brief() -> None:
     proxy = network_settings.get("proxy")
     crawler_proxy = proxy if proxy and network_settings.get("enable_for_crawler") else None
     llm_proxy = proxy if proxy and network_settings.get("enable_for_llm") else None
-    pusher_proxy = proxy if proxy and network_settings.get("enable_for_pusher") else None
+    pusher_proxy = _get_pusher_proxy(settings)
 
     # 配置日志
     logging.basicConfig(
@@ -265,25 +335,10 @@ async def generate_daily_brief() -> None:
         )
 
         # 7. 推送到各渠道
-        dingtalk_cfg = pusher_settings.get("dingtalk", {})
-        if dingtalk_cfg.get("enabled", False):
-            pusher = DingTalkPusher(
-                webhook_url=dingtalk_cfg.get("webhook_url"),
-                proxy=pusher_proxy,
-            )
-            await pusher.push(title="今日简报", content=brief_md)
+        if send_notification:
+            await _push_brief_content(pusher_settings, brief_md, proxy=pusher_proxy)
         else:
-            logger.info("钉钉推送未启用，跳过")
-
-        feishu_cfg = pusher_settings.get("feishu", {})
-        if feishu_cfg.get("enabled", False):
-            fs_pusher = FeishuPusher(
-                webhook_url=feishu_cfg.get("webhook_url"),
-                proxy=pusher_proxy,
-            )
-            await fs_pusher.push(title="今日简报", content=brief_md)
-        else:
-            logger.info("飞书推送未启用，跳过")
+            logger.info("定时生成任务已关闭即时通知，等待独立推送任务发送")
 
         # 8. 完成运行记录
         stats = store.finish_run(

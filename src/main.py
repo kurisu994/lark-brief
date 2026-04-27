@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -12,13 +13,19 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
-def _parse_cron(settings: dict) -> "CronTrigger":
-    """从配置中解析 cron 触发器"""
+@dataclass(frozen=True)
+class ScheduleInfo:
+    """定时任务配置摘要"""
+
+    generate_cron: str
+    push_cron: str
+    timezone: str
+
+
+def _make_cron_trigger(cron_expr: str, timezone: str):
+    """从 cron 表达式构建触发器"""
     from apscheduler.triggers.cron import CronTrigger
 
-    schedule_cfg = settings.get("schedule", {})
-    cron_expr = schedule_cfg.get("cron", "0 8 * * *")
-    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
     parts = cron_expr.split()
     return CronTrigger(
         minute=parts[0] if len(parts) > 0 else "0",
@@ -30,25 +37,70 @@ def _parse_cron(settings: dict) -> "CronTrigger":
     )
 
 
+def _get_schedule_info(settings: dict) -> ScheduleInfo:
+    """读取生成和推送两个独立定时任务的配置"""
+    schedule_cfg = settings.get("schedule", {})
+    generate_cron = schedule_cfg.get("generate_cron") or schedule_cfg.get("cron", "0 8 * * *")
+    push_cron = schedule_cfg.get("push_cron", "0 9 * * *")
+    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
+    return ScheduleInfo(
+        generate_cron=generate_cron,
+        push_cron=push_cron,
+        timezone=timezone,
+    )
+
+
+def _parse_cron(settings: dict):
+    """从配置中解析生成任务 cron 触发器（兼容旧调用）"""
+    schedule_info = _get_schedule_info(settings)
+    return _make_cron_trigger(schedule_info.generate_cron, schedule_info.timezone)
+
+
+def _register_scheduled_jobs(scheduler, settings: dict) -> ScheduleInfo:
+    """注册生成和推送两个独立定时任务"""
+    from src.pipeline import generate_daily_brief, push_daily_brief
+
+    schedule_info = _get_schedule_info(settings)
+    generate_trigger = _make_cron_trigger(schedule_info.generate_cron, schedule_info.timezone)
+    push_trigger = _make_cron_trigger(schedule_info.push_cron, schedule_info.timezone)
+
+    scheduler.add_job(
+        generate_daily_brief,
+        generate_trigger,
+        id="daily_brief_generate",
+        name="每日简报生成",
+        kwargs={"send_notification": False},
+    )
+    scheduler.add_job(
+        push_daily_brief,
+        push_trigger,
+        id="daily_brief_push",
+        name="每日简报通知",
+    )
+    return schedule_info
+
+
 def _run_scheduler(settings_path: Path) -> None:
     """以纯定时调度模式运行（无 Web 服务）"""
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-    from src.pipeline import generate_daily_brief, load_yaml
+    from src.pipeline import load_yaml
 
     settings = load_yaml(settings_path)
-    trigger = _parse_cron(settings)
-    schedule_cfg = settings.get("schedule", {})
-    cron_expr = schedule_cfg.get("cron", "0 8 * * *")
-    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
 
     async def async_main() -> None:
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(generate_daily_brief, trigger, id="daily_brief", name="每日简报生成")
+        schedule_info = _register_scheduled_jobs(scheduler, settings)
         scheduler.start()
 
-        logger.info("📅 定时调度已启动: cron='%s', timezone='%s'", cron_expr, timezone)
-        logger.info("下次执行时间: %s", scheduler.get_job("daily_brief").next_run_time)
+        logger.info(
+            "📅 定时调度已启动: generate_cron='%s', push_cron='%s', timezone='%s'",
+            schedule_info.generate_cron,
+            schedule_info.push_cron,
+            schedule_info.timezone,
+        )
+        logger.info("下次生成时间: %s", scheduler.get_job("daily_brief_generate").next_run_time)
+        logger.info("下次通知时间: %s", scheduler.get_job("daily_brief_push").next_run_time)
 
         try:
             while True:
@@ -69,15 +121,11 @@ def _run_web(port: int) -> None:
     import uvicorn
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-    from src.pipeline import generate_daily_brief, load_yaml
+    from src.pipeline import load_yaml
     from src.web import create_app
 
     settings_path = ROOT_DIR / "config" / "settings.yaml"
     settings = load_yaml(settings_path)
-    trigger = _parse_cron(settings)
-    schedule_cfg = settings.get("schedule", {})
-    cron_expr = schedule_cfg.get("cron", "0 8 * * *")
-    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
 
     app = create_app(settings)
 
@@ -85,10 +133,16 @@ def _run_web(port: int) -> None:
     async def lifespan_with_scheduler(application):
         """在 Web 服务启动时同时启动定时调度"""
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(generate_daily_brief, trigger, id="daily_brief", name="每日简报生成")
+        schedule_info = _register_scheduled_jobs(scheduler, settings)
         scheduler.start()
-        logger.info("📅 定时调度已启动: cron='%s', timezone='%s'", cron_expr, timezone)
-        logger.info("下次执行时间: %s", scheduler.get_job("daily_brief").next_run_time)
+        logger.info(
+            "📅 定时调度已启动: generate_cron='%s', push_cron='%s', timezone='%s'",
+            schedule_info.generate_cron,
+            schedule_info.push_cron,
+            schedule_info.timezone,
+        )
+        logger.info("下次生成时间: %s", scheduler.get_job("daily_brief_generate").next_run_time)
+        logger.info("下次通知时间: %s", scheduler.get_job("daily_brief_push").next_run_time)
         try:
             yield
         finally:

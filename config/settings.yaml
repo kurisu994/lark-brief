@@ -35,7 +35,8 @@ brief:
   min_items: 10
 
 schedule:
-  cron: "30 8 * * *"        # Cron 表达式：每天 8:30 执行
+  generate_cron: "30 8 * * *" # 每天 8:30 抓取数据并生成报告
+  push_cron: "0 9 * * *"      # 每天 9:00 发送当天报告通知
   timezone: "Asia/Shanghai"
 
 store:
