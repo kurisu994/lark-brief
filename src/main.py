@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -13,17 +12,8 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
-@dataclass(frozen=True)
-class ScheduleInfo:
-    """定时任务配置摘要"""
-
-    generate_cron: str
-    push_cron: str
-    timezone: str
-
-
-def _make_cron_trigger(cron_expr: str, timezone: str):
-    """从 cron 表达式构建触发器"""
+def _parse_cron(cron_expr: str, timezone: str = "Asia/Shanghai") -> "CronTrigger":
+    """将 cron 表达式解析为 APScheduler CronTrigger"""
     from apscheduler.triggers.cron import CronTrigger
 
     parts = cron_expr.split()
@@ -37,70 +27,54 @@ def _make_cron_trigger(cron_expr: str, timezone: str):
     )
 
 
-def _get_schedule_info(settings: dict) -> ScheduleInfo:
-    """读取生成和推送两个独立定时任务的配置"""
-    schedule_cfg = settings.get("schedule", {})
-    generate_cron = schedule_cfg.get("generate_cron") or schedule_cfg.get("cron", "0 8 * * *")
-    push_cron = schedule_cfg.get("push_cron", "0 9 * * *")
-    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
-    return ScheduleInfo(
-        generate_cron=generate_cron,
-        push_cron=push_cron,
-        timezone=timezone,
-    )
+def _setup_scheduler(settings: dict) -> "AsyncIOScheduler":
+    """根据配置创建并注册双定时任务的调度器（生成 + 推送）"""
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-
-def _parse_cron(settings: dict):
-    """从配置中解析生成任务 cron 触发器（兼容旧调用）"""
-    schedule_info = _get_schedule_info(settings)
-    return _make_cron_trigger(schedule_info.generate_cron, schedule_info.timezone)
-
-
-def _register_scheduled_jobs(scheduler, settings: dict) -> ScheduleInfo:
-    """注册生成和推送两个独立定时任务"""
     from src.pipeline import generate_daily_brief, push_daily_brief
 
-    schedule_info = _get_schedule_info(settings)
-    generate_trigger = _make_cron_trigger(schedule_info.generate_cron, schedule_info.timezone)
-    push_trigger = _make_cron_trigger(schedule_info.push_cron, schedule_info.timezone)
+    schedule_cfg = settings.get("schedule", {})
+    timezone = schedule_cfg.get("timezone", "Asia/Shanghai")
+    generate_cron = schedule_cfg.get("generate_cron", "30 8 * * *")
+    push_cron = schedule_cfg.get("push_cron", "0 9 * * *")
 
+    scheduler = AsyncIOScheduler()
+
+    # 生成任务：爬取 + LLM 摘要 + 保存文件，不发送通知
+    generate_trigger = _parse_cron(generate_cron, timezone)
     scheduler.add_job(
         generate_daily_brief,
         generate_trigger,
-        id="daily_brief_generate",
-        name="每日简报生成",
         kwargs={"send_notification": False},
+        id="daily_generate",
+        name="每日简报生成",
     )
+
+    # 推送任务：读取当天已生成的简报文件并发送通知
+    push_trigger = _parse_cron(push_cron, timezone)
     scheduler.add_job(
         push_daily_brief,
         push_trigger,
-        id="daily_brief_push",
-        name="每日简报通知",
+        id="daily_push",
+        name="每日简报推送",
     )
-    return schedule_info
+
+    return scheduler, generate_cron, push_cron, timezone
 
 
 def _run_scheduler(settings_path: Path) -> None:
     """以纯定时调度模式运行（无 Web 服务）"""
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
     from src.pipeline import load_yaml
 
     settings = load_yaml(settings_path)
 
     async def async_main() -> None:
-        scheduler = AsyncIOScheduler()
-        schedule_info = _register_scheduled_jobs(scheduler, settings)
+        scheduler, gen_cron, push_cron, tz = _setup_scheduler(settings)
         scheduler.start()
 
-        logger.info(
-            "📅 定时调度已启动: generate_cron='%s', push_cron='%s', timezone='%s'",
-            schedule_info.generate_cron,
-            schedule_info.push_cron,
-            schedule_info.timezone,
-        )
-        logger.info("下次生成时间: %s", scheduler.get_job("daily_brief_generate").next_run_time)
-        logger.info("下次通知时间: %s", scheduler.get_job("daily_brief_push").next_run_time)
+        logger.info("📅 定时调度已启动 (timezone='%s')", tz)
+        logger.info("  生成任务: cron='%s', 下次执行: %s", gen_cron, scheduler.get_job("daily_generate").next_run_time)
+        logger.info("  推送任务: cron='%s', 下次执行: %s", push_cron, scheduler.get_job("daily_push").next_run_time)
 
         try:
             while True:
@@ -119,7 +93,6 @@ def _run_scheduler(settings_path: Path) -> None:
 def _run_web(port: int) -> None:
     """启动 Web API 服务（内嵌定时调度）"""
     import uvicorn
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
     from src.pipeline import load_yaml
     from src.web import create_app
@@ -132,17 +105,11 @@ def _run_web(port: int) -> None:
     @asynccontextmanager
     async def lifespan_with_scheduler(application):
         """在 Web 服务启动时同时启动定时调度"""
-        scheduler = AsyncIOScheduler()
-        schedule_info = _register_scheduled_jobs(scheduler, settings)
+        scheduler, gen_cron, push_cron, tz = _setup_scheduler(settings)
         scheduler.start()
-        logger.info(
-            "📅 定时调度已启动: generate_cron='%s', push_cron='%s', timezone='%s'",
-            schedule_info.generate_cron,
-            schedule_info.push_cron,
-            schedule_info.timezone,
-        )
-        logger.info("下次生成时间: %s", scheduler.get_job("daily_brief_generate").next_run_time)
-        logger.info("下次通知时间: %s", scheduler.get_job("daily_brief_push").next_run_time)
+        logger.info("📅 定时调度已启动 (timezone='%s')", tz)
+        logger.info("  生成任务: cron='%s', 下次执行: %s", gen_cron, scheduler.get_job("daily_generate").next_run_time)
+        logger.info("  推送任务: cron='%s', 下次执行: %s", push_cron, scheduler.get_job("daily_push").next_run_time)
         try:
             yield
         finally:
