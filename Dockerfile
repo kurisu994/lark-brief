@@ -6,6 +6,8 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
 
 # 系统依赖（Playwright Chromium 运行所需）
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 时区数据，保证容器内日期和调度日志与 Asia/Shanghai 一致
+    tzdata \
     # Playwright 浏览器运行时依赖
     libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libatspi2.0-0 libxcomposite1 \

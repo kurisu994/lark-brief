@@ -21,7 +21,7 @@ def test_register_scheduled_jobs_splits_generate_and_push() -> None:
     scheduler = FakeScheduler()
     settings = {
         "schedule": {
-            "cron": "30 8 * * *",
+            "generate_cron": "30 8 * * *",
             "push_cron": "0 9 * * *",
             "timezone": "Asia/Shanghai",
         }
@@ -33,11 +33,28 @@ def test_register_scheduled_jobs_splits_generate_and_push() -> None:
     assert schedule_info.push_cron == "0 9 * * *"
     assert schedule_info.timezone == "Asia/Shanghai"
     assert [job["id"] for job in scheduler.jobs] == [
-        "daily_brief_generate",
-        "daily_brief_push",
+        "daily_generate",
+        "daily_push",
     ]
     assert scheduler.jobs[0]["kwargs"] == {"send_notification": False}
     assert scheduler.jobs[1].get("kwargs") is None
+
+
+def test_register_scheduled_jobs_supports_legacy_cron() -> None:
+    scheduler = FakeScheduler()
+    settings = {
+        "schedule": {
+            "cron": "45 7 * * *",
+            "push_cron": "0 9 * * *",
+            "timezone": "Asia/Shanghai",
+        }
+    }
+
+    schedule_info = main._register_scheduled_jobs(scheduler, settings)
+
+    assert schedule_info.generate_cron == "45 7 * * *"
+    assert schedule_info.push_cron == "0 9 * * *"
+    assert [job["id"] for job in scheduler.jobs] == ["daily_generate", "daily_push"]
 
 
 def test_generate_daily_brief_defaults_to_sending_notifications() -> None:

@@ -59,7 +59,7 @@ def _get_pusher_proxy(settings: dict[str, Any]) -> str | None:
     """根据网络配置返回推送代理地址"""
     network_settings = settings.get("network", {})
     proxy = network_settings.get("proxy")
-    if proxy and network_settings.get("enable_for_pusher"):
+    if isinstance(proxy, str) and proxy and network_settings.get("enable_for_pusher"):
         return proxy
     return None
 
