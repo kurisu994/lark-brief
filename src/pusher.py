@@ -338,7 +338,7 @@ class FeishuPusher:
                 logger.info("✅ 飞书推送成功")
                 return True
             else:
-                logger.warning("❌ 飞书推送失败: %s", result.get("msg", "未知错误"))
+                logger.warning("❌ 飞书推送失败: code=%s, msg=%s", result.get("code"), result.get("msg", "未知错误"))
                 return False
         except Exception as e:
             logger.error("❌ 飞书推送异常: %s", e)
